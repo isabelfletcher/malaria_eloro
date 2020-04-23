@@ -1,1 +1,54 @@
+library(raster)
+library(rasterVis)
+library(sp)
+library(sf)
+library(reshape2)
+library(ggplot2)
 
+ecuador <- sf::st_read("ecu_shp/ecu_admbnda_adm2_inec_20190724.shp")
+
+##########################################################################
+# Load raster stack of files
+
+files <- Sys.glob("input/SA/*.tif")
+ras_stack <- stack(files)
+
+ras_stack <- crop(ras_stack, extent(ecuador))
+
+# Extract all urban values (this can be changed depending on landcover legend and values required)
+ras_stack_urban <- ras_stack == 190 
+
+urban_df <- raster::extract(ras_stack_urban, layer = 1, nl = nlayers(ras_stack_urban), ecuador, df = TRUE)
+
+# Organise where raster values are a single variable
+urban_df <- melt(urban_df, id.vars = c("ID"))
+
+# Count frequency of each raster value, per year and per polygon
+urban_df <- data.frame(urban_df %>% group_by(variable, ID, value) %>% tally())
+
+# Calculate total no. pixels
+total_pixels <- as.data.frame(urban_df %>%
+                                group_by(variable, ID) %>%
+                                dplyr::summarise(pixels = sum(n, na.rm = TRUE)))
+
+df <- total_pixels
+urban_df <- subset(urban_df, urban_df$value == 1)
+urban_df$urban <- urban_df$n
+urban_df$value <- NULL
+df$value <- NULL
+
+# Merge
+df <- merge(df, urban_df, all = TRUE)
+
+# Calculate proportion of 'urban' pixels
+df_urban <- data.frame(df %>% mutate(proportion = urban/pixels * 100))
+
+data <- data.frame(Year = rep(1992:2018, each = 224),
+                   Canton = as.vector(as.character(ecuador$ADM2_ES)), ## ADM_2 is first in the shapefile
+                   Province = as.vector(as.character(ecuador$ADM1_ES)),
+                   urban     = df_urban$urban,
+                   proportion = df_urban$proportion,
+                   pixels     = df_urban$pixels,
+                   n          = df_urban$n)
+
+write.csv(data, file = "ecu_output/urban.csv")
