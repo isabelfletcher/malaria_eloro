@@ -1,0 +1,482 @@
+## Load libraries
+pacman::p_load("raster", "INLA", "sf", "sp", "spdep", "dplyr", "ggplot2",
+               "scales", "knitr", "kableExtra", "doBy", "ggpubr",
+               "RColorBrewer", "Hmisc", "cowplot", "bookdown", "raster",
+               "lattice", "rasterVis", "brinla", "miceadds", "gridExtra",
+               "ggpubr", "gganimate", "gifski", "transformr", "tidyr",
+               "ggregplot", "grid", "MASS", "INLAutils", "reshape2", "zoo")
+
+### Define neighbourhood matrix
+ecuador <- getData('GADM', country = "ECU", level = 2)
+el_oro  <- subset(ecuador, NAME_1 == "El Oro")
+
+## Create neighbourhood matrix
+nb.map <- poly2nb(el_oro)
+nb2INLA("map.graph",nb.map)
+
+## Read in data
+data <- read.csv("data/inla_input/data.csv")
+
+# Separate parasite models
+data_pf <- subset(data, data$parasite == "Falciparum")
+data_pv <- subset(data, data$parasite == "Vivax")
+
+#######################################################################################################################################################
+
+#### Falciparum models
+
+## Fixed effects
+y  <- data_pf$cases
+n  <- length(y)
+
+## Output will be API so modify offset to include 
+e  <- (data_pf$Population/12)/1000
+
+## Climate effects, scaling the covariates
+prcp <- scale(data_pf$prcp_lag3, center = TRUE, scale = TRUE)[,1] 
+tmax <- scale(data_pf$tmax_lag3, center = TRUE, scale = TRUE)[,1]         
+tmin <- scale(data_pf$tmin_lag3, center = TRUE, scale = TRUE)[,1] 
+
+# Landcover
+urban <- scale(data_pf$urban, center = TRUE, scale = TRUE)[,1]     
+
+## Socioeconomic data
+total_poverty <- scale(data_pf$total_poverty, center = TRUE, scale = TRUE)[,1] 
+
+### Random effects
+# Temporal
+t1 <- as.factor(data_pf$Month) # Seasonality
+t2 <- as.factor(data_pf$Year)  # Interannual 
+
+# In order to include structured and unstructured effects separately in the hierarchical model they need to be specified separately, with different latent models. 
+# Structured spatial effects (model = besag)
+s1 <- rep(1:14, 348) 
+
+# Unstructured spatial effects (model = iid)
+s2 <- rep(1:14, 348) 
+
+## Combine into df
+df_inla_pf <- data.frame(y, e, prcp, tmin,
+                         urban, 
+                         total_poverty, 
+                         t1, t2, s1, s2)
+                         
+########################################################################################
+
+## Baseline model - spatiotemporal effects 
+
+########################################################################################
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") 
+
+
+mod1_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
+                
+                
+######################################################################################
+
+## Add t2 random effects
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid")
+
+
+mod1_2_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
+ 
+ ########################################################################################
+
+## Socioeconomic information
+
+########################################################################################
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid") +
+  total_poverty
+
+mod2_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
+                
+ ########################################################################################
+
+## Add urban
+
+########################################################################################
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid") +
+  total_poverty +
+  urban +
+  ## Add interaction
+  int_per +
+  urban*int_per
+
+
+mod3_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
+                
+########################################################################################
+
+## Add temperature
+
+########################################################################################
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid") +
+  total_poverty +
+  urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
+  f(inla.group(tmin), model = "rw1") 
+
+
+mod4_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
+                
+########################################################################################
+
+## Add precipitation
+
+########################################################################################
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid") +
+  total_poverty +
+  urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
+  f(inla.group(tmin), model = "rw1") +
+  f(inla.group(prcp), model = "rw1") 
+
+
+mod5_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
+                
+ ########################################################################################
+
+## Add t2 random effects
+
+########################################################################################
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  total_poverty +
+  urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
+  f(inla.group(tmin), model = "rw1") +
+  f(inla.group(prcp), model = "rw1") +
+  f(t2, model = "iid")
+
+
+mod6_nl_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
+                   offset = log(e), verbose = TRUE,
+                   #control.inla = list(strategy = 'adaptive'),
+                   control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                          config = FALSE, # turn on when computing post. pred
+                                          return.marginals = FALSE), # turn on if using marginals
+                   control.predictor = list(link = 1, compute = TRUE), 
+                   control.family = list(link = "log"))
+                   
+## Linear climate
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  total_poverty +
+  urban +
+  tmin  +
+  prcp +
+  f(t2, model = "iid")
+
+mod6_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
+
+
+
+#######################################################################################################################################################
+
+#### Vivax models
+
+## Fixed effects
+y  <- data_pv$cases
+n  <- length(y)
+
+## Output will be API so modify offset to include 
+e  <- (data_pv$Population/12)/1000
+
+## Climate effects, scaling the covariates
+prcp <- scale(data_pv$prcp_lag3, center = TRUE, scale = TRUE)[,1] 
+tmax <- scale(data_pv$tmax_lag3, center = TRUE, scale = TRUE)[,1]         
+tmin <- scale(data_pv$tmin_lag3, center = TRUE, scale = TRUE)[,1] 
+
+# Landcover
+urban <- scale(data_pv$urban, center = TRUE, scale = TRUE)[,1]     
+
+## Socioeconomic data
+total_poverty <- scale(data_pv$total_poverty, center = TRUE, scale = TRUE)[,1] 
+
+### Random effects
+# Temporal
+t1 <- as.factor(data_pv$Month) # Seasonality
+t2 <- as.factor(data_pv$Year)  # Interannual 
+
+# In order to include structured and unstructured effects separately in the hierarchical model they need to be specified separately, with different latent models. 
+# Structured spatial effects (model = besag)
+s1 <- rep(1:14, 348) 
+
+# Unstructured spatial effects (model = iid)
+s2 <- rep(1:14, 348) 
+
+## Combine into df
+df_inla_pv <- data.frame(y, e, prcp, tmin,
+                         urban, 
+                         total_poverty, 
+                         t1, t2, s1, s2)
+
+########################################################################################
+
+## Baseline model - spatiotemporal effects 
+
+########################################################################################
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") 
+
+
+mod1_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
+
+
+######################################################################################
+
+## Add t2 random effects
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid")
+
+
+mod1_2_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
+                  offset = log(e), verbose = TRUE,
+                  #control.inla = list(strategy = 'adaptive'),
+                  control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                         config = FALSE, # turn on when computing post. pred
+                                         return.marginals = FALSE), # turn on if using marginals
+                  control.predictor = list(link = 1, compute = TRUE), 
+                  control.family = list(link = "log"))
+
+########################################################################################
+
+## Socioeconomic information
+
+########################################################################################
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid") +
+  total_poverty
+
+mod2_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
+
+########################################################################################
+
+## Add urban
+
+########################################################################################
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid") +
+  total_poverty +
+  urban +
+  ## Add interaction
+  int_per +
+  urban*int_per
+
+
+mod3_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
+
+########################################################################################
+
+## Add temperature
+
+########################################################################################
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid") +
+  total_poverty +
+  urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
+  f(inla.group(tmin), model = "rw1") 
+
+
+mod4_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
+
+########################################################################################
+
+## Add precipitation
+
+########################################################################################
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid") +
+  total_poverty +
+  urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
+  f(inla.group(tmin), model = "rw1") +
+  f(inla.group(prcp), model = "rw1") 
+
+
+mod5_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
+
+########################################################################################
+
+## Add t2 random effects
+
+########################################################################################
+
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  total_poverty +
+  urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
+  f(inla.group(tmin), model = "rw1") +
+  f(inla.group(prcp), model = "rw1") +
+  f(t2, model = "iid")
+
+
+mod6_nl_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
+                   offset = log(e), verbose = TRUE,
+                   #control.inla = list(strategy = 'adaptive'),
+                   control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                          config = FALSE, # turn on when computing post. pred
+                                          return.marginals = FALSE), # turn on if using marginals
+                   control.predictor = list(link = 1, compute = TRUE), 
+                   control.family = list(link = "log"))
+
+## Linear climate
+formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
+  f(s2, model = "besag", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  total_poverty +
+  urban +
+  tmin  +
+  prcp +
+  f(t2, model = "iid")
+
+mod6_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
+                offset = log(e), verbose = TRUE,
+                #control.inla = list(strategy = 'adaptive'),
+                control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                       config = FALSE, # turn on when computing post. pred
+                                       return.marginals = FALSE), # turn on if using marginals
+                control.predictor = list(link = 1, compute = TRUE), 
+                control.family = list(link = "log"))
