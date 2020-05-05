@@ -128,7 +128,7 @@ mod_int_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0"
                     control.predictor = list(link = 1, compute = TRUE), 
                     control.family = list(link = "log"))
 
-save(mod_int_pf, file = "models/int_mods/mod_int_pf.R")
+save(mod_int_pf, file = "models/mod_int_pf.R")
 
 
 formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
@@ -150,7 +150,7 @@ mod_int_nl_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomia
                        control.predictor = list(link = 1, compute = TRUE), 
                        control.family = list(link = "log"))
 
-save(mod_int_nl_pf, file = "models/int_mods/mod_int_nl_pf.R")
+save(mod_int_nl_pf, file = "models/mod_int_nl_pf.R")
 
 
 formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
@@ -174,7 +174,7 @@ mod_int_w_irs_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbino
                           control.predictor = list(link = 1, compute = TRUE), 
                           control.family = list(link = "log"))
 
-save(mod_int_w_irs_pf, file = "models/int_mods/mod_int_w_irs_pf.R")
+save(mod_int_w_irs_pf, file = "models/mod_int_w_irs_pf.R")
 
 formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
   f(s2, model = "besag", graph = "map.graph") +
@@ -197,7 +197,7 @@ mod_int_w_fum_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbino
                           control.predictor = list(link = 1, compute = TRUE), 
                           control.family = list(link = "log"))
 
-save(mod_int_w_fum_pf, file = "models/int_mods/mod_int_w_fum_pf.R")
+save(mod_int_w_fum_pf, file = "models/mod_int_w_fum_pf.R")
 
 formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
   f(s2, model = "besag", graph = "map.graph") +
@@ -220,7 +220,7 @@ mod_int_w_fog_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbino
                           control.predictor = list(link = 1, compute = TRUE), 
                           control.family = list(link = "log"))
 
-save(mod_int_w_fog_pf, file = "models/int_mods/mod_int_w_fog_pf.R")
+save(mod_int_w_fog_pf, file = "models/mod_int_w_fog_pf.R")
 
 
 ####### Model without interventions to compare 2001-2015
@@ -241,7 +241,7 @@ mod_int3_nl_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomi
                        control.predictor = list(link = 1, compute = TRUE), 
                        control.family = list(link = "log"))
 
-save(mod_int3_nl_pf, file = "models/int_mods/mod_int3_nl_pf.R")
+save(mod_int3_nl_pf, file = "models/mod_int3_nl_pf.R")
 
 
 #######################################################################################################################################################
@@ -309,7 +309,7 @@ mod_int_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0"
                     control.predictor = list(link = 1, compute = TRUE), 
                     control.family = list(link = "log"))
 
-save(mod_int_pv, file = "models/int_mods/mod_int_pv.R")
+save(mod_int_pv, file = "models/mod_int_pv.R")
 
 
 formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
@@ -331,7 +331,7 @@ mod_int_nl_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomia
                        control.predictor = list(link = 1, compute = TRUE), 
                        control.family = list(link = "log"))
 
-save(mod_int_nl_pv, file = "models/int_mods/mod_int_nl_pv.R")
+save(mod_int_nl_pv, file = "models/mod_int_nl_pv.R")
 
 formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
   f(s2, model = "besag", graph = "map.graph") +
@@ -354,7 +354,7 @@ mod_int_w_irs_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbino
                           control.predictor = list(link = 1, compute = TRUE), 
                           control.family = list(link = "log"))
 
-save(mod_int_w_irs_pv, file = "models/int_mods/mod_int_w_irs_pv.R")
+save(mod_int_w_irs_pv, file = "models/mod_int_w_irs_pv.R")
 
 formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
   f(s2, model = "besag", graph = "map.graph") +
@@ -377,7 +377,7 @@ mod_int_w_fum_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbino
                           control.predictor = list(link = 1, compute = TRUE), 
                           control.family = list(link = "log"))
 
-save(mod_int_w_fum_pv, file = "models/int_mods/mod_int_w_fum_pv.R")
+save(mod_int_w_fum_pv, file = "models/mod_int_w_fum_pv.R")
 
 formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
   f(s2, model = "besag", graph = "map.graph") +
@@ -400,7 +400,4 @@ mod_int_w_fog_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbino
                           control.predictor = list(link = 1, compute = TRUE), 
                           control.family = list(link = "log"))
 
-save(mod_int_w_fog_pv, file = "models/int_mods/mod_int_w_fog_pv.R")
-
-
-
+save(mod_int_w_fog_pv, file = "models/mod_int_w_fog_pv.R")
