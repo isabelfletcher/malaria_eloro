@@ -97,11 +97,11 @@ data$Covariate <- factor(data$Covariate, levels = c("Poverty",
 col1 <- "grey40"
 tcol1 <- do.call(rgb,c(as.list(col2rgb(col1)), alpha = 255/4, max = 255))
   
-tmin_df_pf <- as.data.frame(mod6_l_pf$summary.random$`inla.group(tmin)`)
-tmin_df_pv <- as.data.frame(mod6_l_pv$summary.random$`inla.group(tmin)`)
+tmin_df_pf <- as.data.frame(mod5_pf$summary.random$`inla.group(tmin)`)
+tmin_df_pv <- as.data.frame(mod5_pv$summary.random$`inla.group(tmin)`)
   
 ### Unscale temperature values to plot by ddd back mean and times by sd
-data <- read.csv("data/inla_input/data.csv")
+data <- read.csv("data/data.csv")
 data_pf <- subset(data, data$parasite == "Falciparum")
 data_pv <- subset(data, data$parasite == "Vivax")
   
@@ -226,6 +226,423 @@ ggplot(t1_df, aes(Month, mean)) +
 ################################################################################################
 
 ####### Compare model posterior predictions with and without climate information
+# Models with climate information
+load("models/mod5_pf.R")
+load("models/mod5_pv.R")
+
+# Models without climate information
+load("models/mod3_pf.R") 
+load("models/mod3_pv.R") 
+
+## Read in data
+data <- read.csv("data/inla_input/data.csv")
+# Separate parasite models
+data_pf <- subset(data, data$parasite == "Falciparum")
+data_pv <- subset(data, data$parasite == "Vivax")
+
+
+data <- data.frame(Year     = c(rep(data_pf$Year, 2)),
+                   
+                   Month    = c(rep(data_pf$Month, 2)),
+                   
+                   Canton  = c(rep(data_pf$Canton, 2)),
+                   
+                   Population = c(data_pf$Population, data_pv$Population),
+                   
+                   Parasite = c(rep("P. falciparum", 4872), rep("P. vivax", 4872)),
+                   
+                   Fit      = c(mod5_pf$summary.fitted.values$mean,
+                                mod5_pv$summary.fitted.values$mean),
+                   
+                   Observed = c(data_pf$cases, data_pv$cases),
+                   
+                   lci      = c(mod5_pf$summary.fitted.values[,3],
+                                mod8_pv$summary.fitted.values[,3]),
+                   
+                   uci      =  c(mod5_pf$summary.fitted.values[,5],
+                                 mod5_pv$summary.fitted.values[,5]))
+
+
+## Summarise over space
+data <- as.data.frame(data %>% group_by(Year, Month, Parasite) %>%
+                        dplyr::summarise(Fit = mean(Fit, na.rm = TRUE),
+                                         Observed      = mean(Observed, na.rm = TRUE),
+                                         lci      = mean(lci, na.rm = TRUE),
+                                         uci      = mean(uci, na.rm = TRUE)))
+
+data$Date <- as.Date(with(data, paste(Year, Month, rep(01, nrow(data)), sep = "-")), "%Y-%m-%d")
+
+col1 <- brewer.pal(8, "Set2")[3]
+tcol1 <- do.call(rgb,c(as.list(col2rgb(col1)), alpha = 255/4, max = 255))
+
+climate_plot <-
   
+  ggplot(data, aes(x = as.Date(Date), y = Observed)) +
+  geom_line(aes(colour = "Observed"), linetype = "solid") +
+  geom_line(data = data, aes(x = Date, y = Fit, colour = "Fit"), linetype = "dashed") +
+  geom_ribbon(data = data, aes(ymin = lci, ymax = uci), alpha = 0.2, colour = tcol1, fill = tcol1) +
+  scale_x_date(labels = date_format("%Y"),
+               expand = c(0,0),
+               breaks = date_breaks("years"),
+               date_minor_breaks = "1 month") +
+  ylab("") +
+  xlab("") +
+  theme_classic() +
+  facet_grid(~Parasite, scales = "free") +
+  scale_colour_manual(name = "legend", values = c("dimgrey", "grey"),
+                      breaks = c("Observed", "Fit"),
+                      labels = c("Observed", "Modelled")) +
+  scale_linetype_manual(name = "legend", values = c("solid", "dashed"),
+                        breaks = c("Observed", "Fit"),
+                        labels = c("Observed", "Modelled")) +
+  guides(colour = guide_legend(override.aes = list(linetype = c(1,2)))) +
+  theme(axis.text.x  = element_blank(),
+        axis.text.y  = element_text(size = 7),
+        axis.ticks.x = element_blank(),
+        legend.title = element_blank(),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = c(0.90, 0.85),
+        legend.key.width = unit(2, "line"),
+        legend.key.height = unit(1, "line"),
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5),
+        strip.text.x = element_text(face = "bold.italic"),
+        strip.background = element_blank()) 
+
+data <- data.frame(Year     = c(rep(data_pf$Year, 2)),
+                   
+                   Month    = c(rep(data_pf$Month, 2)),
+                   
+                   Canton  = c(rep(data_pf$Canton, 2)),
+                   
+                   Parasite = c(rep("P. falciparum", 4872), rep("P. vivax", 4872)),
+                   
+                   Fit      = c(mod3_pf$summary.fitted.values$mean,
+                                mod3_pv$summary.fitted.values$mean),
+                   
+                   Observed = c(data_pf$cases, data_pv$cases),
+                   
+                   lci      = c(mod3_pf$summary.fitted.values[,3],
+                                mod3_pv$summary.fitted.values[,3]),
+                   
+                   uci      =  c(mod3_pf$summary.fitted.values[,5],
+                                 mod3_pv$summary.fitted.values[,5]))
+
+
+## Summarise over space
+data <- as.data.frame(data %>% group_by(Year, Month, Parasite) %>%
+                        dplyr::summarise(Fit = mean(Fit, na.rm = TRUE),
+                                         Observed      = mean(Observed, na.rm = TRUE),
+                                         lci      = mean(lci, na.rm = TRUE),
+                                         uci      = mean(uci, na.rm = TRUE)))
+
+data$Date <- as.Date(with(data, paste(Year, Month, rep(01, nrow(data)), sep = "-")), "%Y-%m-%d")
+
+col1 <- brewer.pal(8, "Set2")[3]
+tcol1 <- do.call(rgb,c(as.list(col2rgb(col1)), alpha = 255/4, max = 255))
+
+plot_w_climate <-
   
+  ggplot(data, aes(x = as.Date(Date), y = Observed)) +
+  geom_line(aes(colour = "Observed"), linetype = "solid") +
+  geom_line(data = data, aes(x = Date, y = Fit, colour = "Fit"), linetype = "dashed") +
+  geom_ribbon(data = data, aes(ymin = lci, ymax = uci), alpha = 0.2, colour = tcol1, fill = tcol1) +
+  scale_x_date(labels = date_format("%Y"),
+               expand = c(0,0),
+               breaks = date_breaks("years"),
+               date_minor_breaks = "1 month") +
+  ylab("") +
+  xlab("") +
+  theme_classic() +
+  facet_grid(~Parasite, scales = "free") +
+  scale_colour_manual(name = "legend", values = c("dimgrey", "grey"),
+                      breaks = c("Observed", "Fit"),
+                      labels = c("Observed", "Modelled")) +
+  scale_linetype_manual(name = "legend", values = c("solid", "dashed"),
+                        breaks = c("Observed", "Fit"),
+                        labels = c("Observed", "Modelled")) +
+  guides(colour = guide_legend(override.aes = list(linetype = c(1,2)))) +
+  theme(axis.text.x  = element_text(angle = 90, hjust = 1, size = 7),
+        axis.text.y  = element_text(size = 7),
+        legend.title = element_blank(),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        legend.position = 'none',
+        legend.key.width = unit(2, "line"),
+        legend.key.height = unit(1, "line"),
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5),
+        strip.text = element_blank(),
+        strip.background = element_blank()) 
   
+climate_pred <-
+  
+  ggarrange(climate_plot,
+            plot_w_climate,
+            align = "hv",
+            labels = c("A) with climate",
+                       "B) without climate"),
+            font.label = list(size = 11),
+            nrow = 2,
+            hjust = -0.2)
+
+annotate_figure(climate_pred, 
+                left = text_grob("Annual parasite incidence", rot = 90,
+                                 vjust = 1.9, hjust = 0.4,
+                                 size = 10),
+                bottom = text_grob("Time",
+                                   vjust = -0.8, hjust = -0.2, size = 10))
+
+################################################################################################
+
+####### Compare parameter estimates for 1990-2018 model and intervention model 2001-2015
+
+## 1990-2018 models
+load("models/mod6_l_pf.R")
+load("models/mod6_l_pv.R")
+
+## Intervention models 2001-2015
+load("models/mod_int_pf.R")
+load("models/mod_int_pv.R")
+
+# Create dataframe of values
+data_int <- data.frame(Model = c(rep("1990-2018 model", 14),
+                                 rep("2001-2015 model", 14)),
+                       
+                       Covariate  = c("Minimum\ntemperature", "Minimum\ntemperature",
+                                      "Precipitation", "Precipitation",
+                                      "Urban", "Urban",
+                                      "Poverty", "Poverty",
+                                      "Indoor residual\nspraying", "Indoor residual\nspraying",
+                                      "Space\nspraying", "Space\nspraying", 
+                                      "Fumigation", "Fumigation",
+                                      
+                                      "Minimum\ntemperature", "Minimum\ntemperature",
+                                      "Precipitation", "Precipitation",
+                                      "Urban", "Urban",
+                                      "Poverty", "Poverty",
+                                      "Indoor residual\nspraying", "Indoor residual\nspraying",
+                                      "Space\nspraying", "Space\nspraying",
+                                      "Fumigation", "Fumigation"),
+                       
+                       mean     = c(mod6_l_pf$summary.fixed$mean[4], mod6_l_pv$summary.fixed$mean[4],
+                                    mod6_l_pf$summary.fixed$mean[5], mod6_l_pv$summary.fixed$mean[5],
+                                    mod6_l_pf$summary.fixed$mean[3], mod6_l_pv$summary.fixed$mean[3],
+                                    mod6_l_pf$summary.fixed$mean[2], mod6_l_pv$summary.fixed$mean[2],
+                                    NA, NA,
+                                    NA, NA,
+                                    NA, NA,
+                                    
+                                    mod_int_pf$summary.fixed$mean[2], mod_int_pv$summary.fixed$mean[2],
+                                    mod_int_pf$summary.fixed$mean[3], mod_int_pv$summary.fixed$mean[3],
+                                    mod_int_pf$summary.fixed$mean[4], mod_int_pv$summary.fixed$mean[4],
+                                    mod_int_pf$summary.fixed$mean[5], mod_int_pv$summary.fixed$mean[5],
+                                    mod_int_pf$summary.fixed$mean[7], mod_int_pv$summary.fixed$mean[7],
+                                    mod_int_pf$summary.fixed$mean[6], mod_int_pv$summary.fixed$mean[6],
+                                    mod_int_pf$summary.fixed$mean[8], mod_int_pv$summary.fixed$mean[8]),
+                       
+                       
+                       min     = c(mod6_l_pf$summary.fixed$`0.025quant`[4], mod6_l_pv$summary.fixed$`0.025quant`[4],
+                                   mod6_l_pf$summary.fixed$`0.025quant`[5], mod6_l_pv$summary.fixed$`0.025quant`[5],
+                                   mod6_l_pf$summary.fixed$`0.025quant`[3], mod6_l_pv$summary.fixed$`0.025quant`[3],
+                                   mod6_l_pf$summary.fixed$`0.025quant`[2], mod6_l_pv$summary.fixed$`0.025quant`[2],
+                                   NA, NA,
+                                   NA, NA,
+                                   NA, NA,
+                                   
+                                   mod_int_pf$summary.fixed$`0.025quant`[2], mod_int_pv$summary.fixed$`0.025quant`[2],
+                                   mod_int_pf$summary.fixed$`0.025quant`[3], mod_int_pv$summary.fixed$`0.025quant`[3],
+                                   mod_int_pf$summary.fixed$`0.025quant`[4], mod_int_pv$summary.fixed$`0.025quant`[4],
+                                   mod_int_pf$summary.fixed$`0.025quant`[5], mod_int_pv$summary.fixed$`0.025quant`[5],
+                                   mod_int_pf$summary.fixed$`0.025quant`[7], mod_int_pv$summary.fixed$`0.025quant`[7],
+                                   mod_int_pf$summary.fixed$`0.025quant`[6], mod_int_pv$summary.fixed$`0.025quant`[6],
+                                   mod_int_pf$summary.fixed$`0.025quant`[8], mod_int_pv$summary.fixed$`0.025quant`[8]),
+                       
+                       max     = c(mod6_l_pf$summary.fixed$`0.975quant`[4], mod6_l_pv$summary.fixed$`0.975quant`[4],
+                                   mod6_l_pf$summary.fixed$`0.975quant`[5], mod6_l_pv$summary.fixed$`0.975quant`[5],
+                                   mod6_l_pf$summary.fixed$`0.975quant`[3], mod6_l_pv$summary.fixed$`0.975quant`[3],
+                                   mod6_l_pf$summary.fixed$`0.975quant`[2], mod6_l_pv$summary.fixed$`0.975quant`[2],
+                                   NA, NA,
+                                   NA, NA,
+                                   NA, NA,
+                                   
+                                   mod_int_pf$summary.fixed$`0.975quant`[2], mod_int_pv$summary.fixed$`0.975quant`[2],
+                                   mod_int_pf$summary.fixed$`0.975quant`[3], mod_int_pv$summary.fixed$`0.975quant`[3],
+                                   mod_int_pf$summary.fixed$`0.975quant`[4], mod_int_pv$summary.fixed$`0.975quant`[4],
+                                   mod_int_pf$summary.fixed$`0.975quant`[5], mod_int_pv$summary.fixed$`0.975quant`[5],
+                                   mod_int_pf$summary.fixed$`0.975quant`[7], mod_int_pv$summary.fixed$`0.975quant`[7],
+                                   mod_int_pf$summary.fixed$`0.975quant`[6], mod_int_pv$summary.fixed$`0.975quant`[6],
+                                   mod_int_pf$summary.fixed$`0.975quant`[8], mod_int_pv$summary.fixed$`0.975quant`[8]),
+                       
+                       Parasite = c("P. falciparum", "P. vivax", 
+                                    "P. falciparum", "P. vivax", 
+                                    "P. falciparum", "P. vivax",
+                                    "P. falciparum", "P. vivax",
+                                    "P. falciparum", "P. vivax", 
+                                    "P. falciparum", "P. vivax",
+                                    "P. falciparum", "P. vivax",
+                                    
+                                    "P. falciparum", "P. vivax", 
+                                    "P. falciparum", "P. vivax", 
+                                    "P. falciparum", "P. vivax",
+                                    "P. falciparum", "P. vivax",
+                                    "P. falciparum", "P. vivax",
+                                    "P. falciparum", "P. vivax",
+                                    "P. falciparum", "P. vivax"))
+
+data_int$Covariate <- as.factor(data_int$Covariate)
+
+### Order for plotting
+data_int$Covariate <- factor(data_int$Covariate, levels = c("Space\nspraying",
+                                                            "Fumigation",
+                                                            "Indoor residual\nspraying",
+                                                            "Poverty",
+                                                            "Urban",
+                                                            "Precipitation",
+                                                            "Minimum\ntemperature"))
+col1 <- "#08174D"
+col2 <- "#339989"
+
+ggplot(data_int, aes(y = data_int$mean, x = data_int$Covariate, colour = data_int$Model)) +
+  geom_hline(yintercept = 0, colour = "darkgrey", linetype = "dashed", size = 0.3) +
+  geom_linerange(aes(ymin = data_int$min, ymax = data_int$max), size = 0.4, position = position_dodge(width = 0.7)) +
+  geom_point(aes(x = data_int$Covariate, y = data_int$mean, colour = data_int$Model), size = 3,
+             position = position_dodge(width = 0.7), shape = 18) +
+  theme_classic() + coord_flip() +
+  theme(axis.line = element_blank(),
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5),
+        strip.background = element_blank(),
+        legend.position = c(0.87,0.18),
+        legend.key = element_blank(),
+        legend.background = element_blank(),
+        strip.text = element_text(face = "bold.italic")) +
+  xlab("") + ylab("Estimate") +
+  labs(color = "") +
+  scale_colour_manual(values = c(col1, col2)) + 
+  facet_wrap(~Parasite, nrow = 1)
+
+
+################################################################################################
+
+####### Compare the model improvement for each intervention measure
+## Models with all interventions 
+load("models/mod_int_nl_pf.R")
+load("models/mod_int_nl_pv.R")
+
+## Models without each intervention
+load("models/mod_int_w_irs_pf.R")
+load("models/mod_int_w_irs_pv.R")
+load("models/mod_int_w_fog_pf.R")
+load("models/mod_int_w_fog_pv.R")
+load("models/mod_int_w_fum_pf.R")
+load("models/mod_int_w_fum_pv.R")
+
+## Read in data
+data <- read.csv("data/data.csv", fileEncoding = "latin1")
+## Subset data to intervention period
+data <- subset(data, data$Year < 2016 & data$Year > 2000)
+# Separate parasite models
+data_pf <- subset(data, data$parasite == "Falciparum")
+data_pv <- subset(data, data$parasite == "Vivax")
+
+### Models with interventions
+data_pf$with_int_pf <- mod_int_nl_pf$summary.fitted.values$`0.5quant`
+data_pv$with_int_pv <- mod_int_nl_pv$summary.fitted.values$`0.5quant`
+# without IRS
+data_pf$without_irs_pf <- mod_int_w_irs_pf$summary.fitted.values$`0.5quant`
+data_pv$without_irs_pv <- mod_int_w_irs_pv$summary.fitted.values$`0.5quant`
+# without fogging
+data_pf$without_fog_pf <- mod_int_w_fog_pf$summary.fitted.values$`0.5quant`
+data_pv$without_fog_pv <- mod_int_w_fog_pv$summary.fitted.values$`0.5quant`
+# without fumigation
+data_pf$without_fum_pf <- mod_int_w_fum_pf$summary.fitted.values$`0.5quant`
+data_pv$without_fum_pv <- mod_int_w_fum_pv$summary.fitted.values$`0.5quant`
+
+## Calculate RMSE for each canton
+rmse_pf <- as.data.frame(data_pf %>% dplyr::mutate(with_int     = (cases - with_int_pf)^2,
+                                                   without_irs  = (cases - without_irs_pf)^2,
+                                                   without_fog  = (cases - without_fog_pf)^2,
+                                                   without_fum  = (cases - without_fum_pf)^2) %>%
+                           group_by(Canton) %>%
+                           dplyr::summarise(with_int     = sqrt(mean(with_int, na.rm = T)),
+                                            without_irs     = sqrt(mean(without_irs, na.rm = T)),
+                                            without_fog     = sqrt(mean(without_fog, na.rm = T)),
+                                            without_fum     = sqrt(mean(without_fum, na.rm = T))))
+
+rmse_pf$Parasite <- 'P. falciparum'
+
+rmse_pv <- as.data.frame(data_pv %>% dplyr::mutate(with_int     = (cases - with_int_pv)^2,
+                                                   without_irs  = (cases - without_irs_pv)^2,
+                                                   without_fog  = (cases - without_fog_pv)^2,
+                                                   without_fum  = (cases - without_fum_pv)^2) %>%
+                           group_by(Canton) %>%
+                           dplyr::summarise(with_int     = sqrt(mean(with_int, na.rm = T)),
+                                            without_irs     = sqrt(mean(without_irs, na.rm = T)),
+                                            without_fog     = sqrt(mean(without_fog, na.rm = T)),
+                                            without_fum     = sqrt(mean(without_fum, na.rm = T))))
+
+rmse_pv$Parasite <- 'P. vivax'
+
+rmse_df <- rbind(rmse_pf, rmse_pv)
+rmse_df <- rmse_df %>% dplyr::rename(id = Canton)
+
+## Calculate difference, where positive values indicate improvement in model
+rmse_df <- rmse_df %>% dplyr::mutate(difference_irs = without_irs - with_int,
+                                     difference_fog = without_fog - with_int,
+                                     difference_fum = without_fum - with_int)
+
+# Express as percentage of the original
+rmse_df <- rmse_df %>% dplyr::mutate(percent_irs = (difference_irs/without_irs)*100,
+                                     percent_fog = (difference_fog/without_fog)*100,
+                                     percent_fum = (difference_fum/without_fum)*100)
+
+options(scipen = 9999)
+
+## Melt to plot
+rmse_df <- rmse_df[c(1,6,10:12)]
+rmse_df <- melt(rmse_df, id.vars = c("id", "Parasite"))
+levels(rmse_df$variable)[levels(rmse_df$variable)=="percent_irs"] <- "Indoor residual spraying"
+levels(rmse_df$variable)[levels(rmse_df$variable)=="percent_fog"] <- "Space spraying"
+levels(rmse_df$variable)[levels(rmse_df$variable)=="percent_fum"] <- "Fumigation"
+
+# Re order for plotting
+rmse_df$variable <- factor(rmse_df$variable, levels = c("Indoor residual spraying", 
+                                                        "Fumigation", 
+                                                        "Space spraying"))
+
+rmse_df$value <- replace(rmse_df$value, which(rmse_df$value == 0), NA)
+
+## Replace Chilla canton with NA, as no case data
+rmse_df$value[rmse_df$id == "Chilla"] <- NA
+
+ecuador <- getData('GADM', country = "ECU", level = 2)
+el_oro  <- subset(ecuador, NAME_1 == "El Oro")
+el_oro_f <- fortify(el_oro, region = "NAME_2")
+merge_shp_coef <- merge(el_oro_f, rmse_df, by = "id")
+
+## Center colour palette around 0 
+limit <- max(abs(merge_shp_coef$value)) * c(-1, 1)
+
+my_palette <- c("#5E083E", "#DDDDDD","#2EA805")
+
+  ggplot() + 
+  geom_polygon(data = merge_shp_coef, aes(x = long, y = lat, group = group, 
+                                          fill = value), color = "black", size = 0.1,
+               alpha = 0.6) +
+  facet_grid(Parasite~variable, switch = "y") +
+  coord_map() +
+  theme_void() +
+  theme(axis.line = element_blank(),
+        panel.background = element_rect(colour = "black", fill = NA, size=0.4),
+        strip.background = element_blank(),
+        legend.title.align = 0.3,
+        legend.text.align = 1,
+        strip.text.x = element_text(face = "bold", margin=margin(b=7)),
+        strip.text.y = element_text(face = "bold.italic",
+                                    vjust = 3.5,
+                                    margin=margin(b = 7, l = 7))) +
+  scale_fill_gradient2(low = "#5E083E", mid = "#DDDDDD", high = "#2EA805",
+                       midpoint = 0, limits = c(-14, max(merge_shp_coef$value, na.rm =T)),
+                       name = "Model\nimprovement\n(%)",
+                       na.value = "grey43",
+                       guide = guide_colourbar(ticks = FALSE, barheight = 5,
+                                               barwidth = 1))
