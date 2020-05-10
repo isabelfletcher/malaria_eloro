@@ -57,17 +57,13 @@ total_poverty <- scale(data_pf$total_poverty, center = TRUE, scale = TRUE)[,1]
 t1 <- as.factor(data_pf$Month) # Seasonality
 t2 <- as.factor(data_pf$Year)  # Interannual 
 
-# In order to include structured and unstructured effects separately in the hierarchical model they need to be specified separately, with different latent models. 
-# Structured spatial effects (model = besag)
+# Spatial
 s1 <- rep(1:14, 348) 
-
-# Unstructured spatial effects (model = iid)
-s2 <- rep(1:14, 348) 
 
 df_inla_pf <- data.frame(y, e, prcp, tmin,
                          int_per, urban,  
                          total_poverty, 
-                         t1, t2, s1, s2)
+                         t1, t2, s1)
 
 ########################################################################################
 
@@ -75,8 +71,7 @@ df_inla_pf <- data.frame(y, e, prcp, tmin,
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") 
 
 
@@ -96,8 +91,7 @@ save(mod1_pf, file = "models/mod1_pf.R")
 
 ## Add t2 random effects
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid")
 
@@ -118,8 +112,7 @@ save(mod1_2_pf, file = "models/mod1_2_pf.R")
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty 
@@ -140,8 +133,7 @@ save(mod2_pf, file = "models/mod2_pf.R")
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -167,8 +159,7 @@ save(mod3_pf, file = "models/mod3_pf.R")
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -190,8 +181,7 @@ mod4_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0",
 save(mod4_pf, file = "models/mod4_pf.R")
 
 ## Test linear
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -219,8 +209,7 @@ save(mod4_l_pf, file = "models/mod4_l_pf.R")
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -242,8 +231,7 @@ mod5_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0",
 save(mod5_pf, file = "models/mod5_pf.R")
 
 ## Test linear
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -266,8 +254,7 @@ mod5_l_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0",
 save(mod5_l_pf, file = "models/mod5_l_pf.R")
 
 ### With model without interaction, to plot parameter estimates
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -292,8 +279,7 @@ save(mod6_l_pf, file = "models/mod6_l_pf.R")
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -313,8 +299,7 @@ mod6_wtmin_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomia
 
 save(mod6_wtmin_pf, file = "models/mod6_wtmin_pf.R")
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -340,8 +325,7 @@ save(mod6_l_wtmin_pf, file = "models/mod6_l_wtmin_pf.R")
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -387,17 +371,13 @@ total_poverty <- scale(data_pv$total_poverty, center = TRUE, scale = TRUE)[,1]
 t1 <- as.factor(data_pv$Month) # Seasonality
 t2 <- as.factor(data_pv$Year)  # Interannual 
 
-# In order to include structured and unstructured effects separately in the hierarchical model they need to be specified separately, with different latent models. 
-# Structured spatial effects (model = besag)
+# Spatial
 s1 <- rep(1:14, 348) 
-
-# Unstructured spatial effects (model = iid)
-s2 <- rep(1:14, 348) 
 
 df_inla_pv <- data.frame(y, e, prcp, tmin,
                          int_per, urban,  
                          total_poverty, 
-                         t1, t2, s1, s2)
+                         t1, t2, s1)
 
 ########################################################################################
 
@@ -405,8 +385,7 @@ df_inla_pv <- data.frame(y, e, prcp, tmin,
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") 
 
 
@@ -426,8 +405,7 @@ save(mod1_pv, file = "models/mod1_pv.R")
 
 ## Add t2 random effects
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid")
 
@@ -448,8 +426,7 @@ save(mod1_2_pv, file = "models/mod1_2_pv.R")
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty 
@@ -470,8 +447,7 @@ save(mod2_pv, file = "models/mod2_pv.R")
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -497,8 +473,7 @@ save(mod3_pv, file = "models/mod3_pv.R")
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -520,8 +495,7 @@ mod4_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0",
 save(mod4_pv, file = "models/mod4_pv.R")
 
 ## Test linear
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -549,8 +523,7 @@ save(mod4_l_pv, file = "models/mod4_l_pv.R")
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -572,8 +545,7 @@ mod5_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0",
 save(mod5_pv, file = "models/mod5_pv.R")
 
 ## Test linear
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -596,8 +568,7 @@ mod5_l_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0",
 save(mod5_l_pv, file = "models/mod5_l_pv.R")
 
 ### With model without interaction, to plot parameter estimates
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -623,8 +594,7 @@ save(mod6_l_pv, file = "models/mod6_l_pv.R")
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -644,8 +614,7 @@ mod6_wtmin_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomia
 
 save(mod6_wtmin_pv, file = "models/mod6_wtmin_pv.R")
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
@@ -671,8 +640,7 @@ save(mod6_l_wtmin_pv, file = "models/mod6_l_wtmin_pv.R")
 
 ########################################################################################
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   total_poverty +
