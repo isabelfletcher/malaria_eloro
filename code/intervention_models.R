@@ -93,24 +93,18 @@ houses_fogged <- scale(data_pf$houses_fogged_lag2, center = TRUE, scale = TRUE)[
 t1 <- as.factor(data_pf$Month) # Seasonality
 t2 <- as.factor(data_pf$Year)  # Interannual 
 
-# In order to include structured and unstructured effects separately in the hierarchical model they need to be specified separately, with different latent models. 
-# Structured spatial effects (model = besag)
+# Spatial 
 s1 <- rep(1:14, 180) 
-
-# Unstructured spatial effects (model = iid)
-s2 <- rep(1:14, 180) 
-
 
 df_inla_pf <- data.frame(y, e, prcp, 
                          tmin, urban, 
                          total_poverty, blocks_fumigated, houses_fogged,
-                         houses_IRS, t1, t2, s1, s2)
+                         houses_IRS, t1, t2, s1)
 
 
 ######################################################################
 ######### Model with interventions 2001-2015
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   tmin +
@@ -131,8 +125,7 @@ mod_int_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0"
 save(mod_int_pf, file = "models/mod_int_pf.R")
 
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin), model = "rw1") +
@@ -153,8 +146,7 @@ mod_int_nl_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomia
 save(mod_int_nl_pf, file = "models/mod_int_nl_pf.R")
 
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin), model = "rw1") +
@@ -176,8 +168,7 @@ mod_int_w_irs_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbino
 
 save(mod_int_w_irs_pf, file = "models/mod_int_w_irs_pf.R")
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin), model = "rw1") +
@@ -199,8 +190,7 @@ mod_int_w_fum_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbino
 
 save(mod_int_w_fum_pf, file = "models/mod_int_w_fum_pf.R")
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin), model = "rw1") +
@@ -224,8 +214,7 @@ save(mod_int_w_fog_pf, file = "models/mod_int_w_fog_pf.R")
 
 
 ####### Model without interventions to compare 2001-2015
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin), model = "rw1") +
@@ -275,23 +264,17 @@ houses_fogged <- scale(data_pv$houses_fogged_lag3, center = TRUE, scale = TRUE)[
 t1 <- as.factor(data_pv$Month) # Seasonality
 t2 <- as.factor(data_pv$Year)  # Interannual 
 
-# In order to include structured and unstructured effects separately in the hierarchical model they need to be specified separately, with different latent models. 
-# Structured spatial effects (model = besag)
+# Spatial
 s1 <- rep(1:14, 180) 
-
-# Unstructured spatial effects (model = iid)
-s2 <- rep(1:14, 180) 
-
 
 df_inla_pv <- data.frame(y, e, prcp,  
                          tmin, urban, 
                          total_poverty, blocks_fumigated, houses_fogged,
-                         houses_IRS, t1, t2, s1, s2)
+                         houses_IRS, t1, t2, s1)
 
 ######################################################################
 ######### Model with interventions 2001-2015
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   tmin +
@@ -312,8 +295,7 @@ mod_int_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0"
 save(mod_int_pv, file = "models/mod_int_pv.R")
 
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin), model = "rw1") +
@@ -333,8 +315,7 @@ mod_int_nl_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomia
 
 save(mod_int_nl_pv, file = "models/mod_int_nl_pv.R")
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin), model = "rw1") +
@@ -356,8 +337,7 @@ mod_int_w_irs_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbino
 
 save(mod_int_w_irs_pv, file = "models/mod_int_w_irs_pv.R")
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin), model = "rw1") +
@@ -379,8 +359,7 @@ mod_int_w_fum_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbino
 
 save(mod_int_w_fum_pv, file = "models/mod_int_w_fum_pv.R")
 
-formula <- y ~ 1 + f(s1, model = "iid", graph = "map.graph") +
-  f(s2, model = "besag", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin), model = "rw1") +
@@ -401,3 +380,6 @@ mod_int_w_fog_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbino
                           control.family = list(link = "log"))
 
 save(mod_int_w_fog_pv, file = "models/mod_int_w_fog_pv.R")
+
+
+
