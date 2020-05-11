@@ -21,7 +21,7 @@ nb.map <- poly2nb(el_oro)
 nb2INLA("map.graph",nb.map)
 
 ## Read in data
-data <- read.csv("data/data.csv")
+data <- read.csv("data/inla_input/data.csv")
 
 ## Add intervention period before/after
 data$int_per <- 0
@@ -84,8 +84,6 @@ mod1_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0",
                 control.family = list(link = "log"))
 
 save(mod1_pf, file = "models/mod1_pf.R")
-
-
 
 ######################################################################################
 
@@ -223,8 +221,8 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
 mod5_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                 offset = log(e), verbose = TRUE,
                 control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                       config = FALSE, 
-                                       return.marginals = FALSE), 
+                                       config = TRUE, 
+                                       return.marginals = TRUE), 
                 control.predictor = list(link = 1, compute = TRUE), 
                 control.family = list(link = "log"))
 
@@ -310,12 +308,12 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   prcp
 
 mod6_l_wtmin_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
-                      offset = log(e), verbose = TRUE,
-                      control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                             config = FALSE, 
-                                             return.marginals = FALSE), 
-                      control.predictor = list(link = 1, compute = TRUE), 
-                      control.family = list(link = "log"))
+                        offset = log(e), verbose = TRUE,
+                        control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                               config = FALSE, 
+                                               return.marginals = FALSE), 
+                        control.predictor = list(link = 1, compute = TRUE), 
+                        control.family = list(link = "log"))
 
 save(mod6_l_wtmin_pf, file = "models/mod6_l_wtmin_pf.R")
 
@@ -537,8 +535,8 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
 mod5_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
                 offset = log(e), verbose = TRUE,
                 control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                       config = FALSE, 
-                                       return.marginals = FALSE), 
+                                       config = TRUE, 
+                                       return.marginals = TRUE), 
                 control.predictor = list(link = 1, compute = TRUE), 
                 control.family = list(link = "log"))
 
