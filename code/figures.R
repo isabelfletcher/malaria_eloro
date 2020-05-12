@@ -91,7 +91,9 @@ data$Covariate <- factor(data$Covariate, levels = c("Poverty",
 
 
 ################################################################################################
-  
+load("models/mod5_pf.R")
+load("models/mod5_pv.R")
+
 ####### Plot non-linear climate relationships
 ### Create df
 col1 <- "grey40"
@@ -133,23 +135,27 @@ data_tmin <- data.frame(Parasite = c(rep("P. falciparum", 25),
 ggplot(data_tmin) + 
   geom_ribbon(aes(ymin=exp(data_tmin$lci), ymax=exp(data_tmin$uci), x=data_tmin$x, fill = "95% CI"), alpha = 0.2) +
   geom_hline(yintercept = 1, colour = "grey50", size = 0.3,
-            linetype = "dashed") +
-    geom_line(aes(x= x, y=exp(mean), colour = "mean")) +
-    theme_classic() +
-    scale_colour_manual("",values="black") +
-    scale_fill_manual("",values=tcol1) +
-    xlab("Temperature (°C)") + ylab("Relative risk") +
-    theme(axis.line = element_blank(),
-          panel.border = element_rect(colour = "black", fill=NA, size=0.5),
-          legend.position = "none",
-          axis.text = element_text(size = 8),
-          axis.title = element_text(size = 9),
-          legend.text = element_text(size = 8),
-          legend.key.width = unit(1, "cm"),
-          legend.key.height = unit(0.5, "cm"),
-          strip.background = element_blank(),
-          strip.text = element_text(face = "italic")) +
-    facet_wrap(~Parasite, ncol = 1)
+             linetype = "dashed") +
+  geom_line(aes(x= x, y=exp(mean), colour = "mean")) +
+  theme_classic() +
+  scale_colour_manual("",values="black") +
+  scale_fill_manual("",values=tcol1) +
+  xlab("Temperature (°C)") + ylab("Relative risk") +
+  theme(axis.line = element_blank(),
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5),
+        legend.position = "none",
+        axis.text = element_text(size = 8),
+        axis.title = element_text(size = 9),
+        legend.text = element_text(size = 8),
+        legend.key.width = unit(1, "cm"),
+        legend.key.height = unit(0.5, "cm"),
+        strip.background = element_blank(),
+        strip.text = element_text(face = "italic")) +
+  scale_y_continuous(limits = c(0, 10), breaks = c(seq(0,10, 2)),
+                     labels = c(0,2,4,6,8,10)) +
+  scale_x_continuous(limits = c(10, 24), breaks = c(seq(10,24, 2)),
+                     labels = c(seq(10,24, 2))) +
+  facet_wrap(~Parasite, ncol = 1)
   
 ################################################################################################
 
@@ -410,19 +416,19 @@ data_int <- data.frame(Model = c(rep("1990-2018 model", 14),
                        
                        Covariate  = c("Minimum\ntemperature", "Minimum\ntemperature",
                                       "Precipitation", "Precipitation",
-                                      "Urban", "Urban",
+                                      "Level of\nurbanization", "Level of\nurbanization",
                                       "Poverty", "Poverty",
                                       "Indoor residual\nspraying", "Indoor residual\nspraying",
                                       "Space\nspraying", "Space\nspraying", 
-                                      "Fumigation", "Fumigation",
+                                      "ULV\nfumigation", "ULV\nfumigation",
                                       
                                       "Minimum\ntemperature", "Minimum\ntemperature",
                                       "Precipitation", "Precipitation",
-                                      "Urban", "Urban",
+                                      "Level of\nurbanization", "Level of\nurbanization",
                                       "Poverty", "Poverty",
                                       "Indoor residual\nspraying", "Indoor residual\nspraying",
                                       "Space\nspraying", "Space\nspraying",
-                                      "Fumigation", "Fumigation"),
+                                      "ULV\nfumigation", "ULV\nfumigation"),
                        
                        mean     = c(mod6_l_pf$summary.fixed$mean[4], mod6_l_pv$summary.fixed$mean[4],
                                     mod6_l_pf$summary.fixed$mean[5], mod6_l_pv$summary.fixed$mean[5],
@@ -493,10 +499,10 @@ data_int$Covariate <- as.factor(data_int$Covariate)
 
 ### Order for plotting
 data_int$Covariate <- factor(data_int$Covariate, levels = c("Space\nspraying",
-                                                            "Fumigation",
+                                                            "ULV\nfumigation",
                                                             "Indoor residual\nspraying",
                                                             "Poverty",
-                                                            "Urban",
+                                                            "Level of\nurbanization",
                                                             "Precipitation",
                                                             "Minimum\ntemperature"))
 col1 <- "#08174D"
