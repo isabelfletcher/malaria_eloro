@@ -343,6 +343,27 @@ mod6_wprcp_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomia
 
 save(mod6_wprcp_pf, file = "models/mod6_wprcp_pf.R")
 
+
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid") +
+  total_poverty +
+  urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
+  tmin
+
+mod6_l_wprcp_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
+                      offset = log(e), verbose = TRUE,
+                      control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                             config = FALSE, 
+                                             return.marginals = FALSE), 
+                      control.predictor = list(link = 1, compute = TRUE), 
+                      control.family = list(link = "log"))
+
+save(mod6_l_wprcp_pf, file = "models/mod6_l_wprcp_pf.R")
+
 #######################################################################################################################################################
 
 #### Vivax models
@@ -657,3 +678,27 @@ mod6_wprcp_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomia
                       control.family = list(link = "log"))
 
 save(mod6_wprcp_pv, file = "models/mod6_wprcp_pv.R")
+
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid") +
+  total_poverty +
+  urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
+  tmin
+
+mod6_l_wprcp_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
+                      offset = log(e), verbose = TRUE,
+                      control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                             config = FALSE, 
+                                             return.marginals = FALSE), 
+                      control.predictor = list(link = 1, compute = TRUE), 
+                      control.family = list(link = "log"))
+
+save(mod6_l_wprcp_pv, file = "models/mod6_l_wprcp_pv.R")
+
+
+
+
