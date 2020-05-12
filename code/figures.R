@@ -531,7 +531,7 @@ ggplot(data_int, aes(y = data_int$mean, x = data_int$Covariate, colour = data_in
 
 ####### Compare the model improvement for each intervention measure
 ## Models with all interventions 
-load("models/mod_int_nl_pf.R")
+load("models/mod_int_pf.R")
 load("models/mod_int_nl_pv.R")
 
 ## Models without each intervention
@@ -543,7 +543,7 @@ load("models/mod_int_w_fum_pf.R")
 load("models/mod_int_w_fum_pv.R")
 
 ## Read in data
-data <- read.csv("data/data.csv", fileEncoding = "latin1")
+data <- read.csv("data/inla_input/data.csv", fileEncoding = "latin1")
 ## Subset data to intervention period
 data <- subset(data, data$Year < 2016 & data$Year > 2000)
 # Separate parasite models
@@ -551,7 +551,7 @@ data_pf <- subset(data, data$parasite == "Falciparum")
 data_pv <- subset(data, data$parasite == "Vivax")
 
 ### Models with interventions
-data_pf$with_int_pf <- mod_int_nl_pf$summary.fitted.values$`0.5quant`
+data_pf$with_int_pf <- mod_int_pf$summary.fitted.values$`0.5quant`
 data_pv$with_int_pv <- mod_int_nl_pv$summary.fitted.values$`0.5quant`
 # without IRS
 data_pf$without_irs_pf <- mod_int_w_irs_pf$summary.fitted.values$`0.5quant`
@@ -608,11 +608,11 @@ rmse_df <- rmse_df[c(1,6,10:12)]
 rmse_df <- melt(rmse_df, id.vars = c("id", "Parasite"))
 levels(rmse_df$variable)[levels(rmse_df$variable)=="percent_irs"] <- "Indoor residual spraying"
 levels(rmse_df$variable)[levels(rmse_df$variable)=="percent_fog"] <- "Space spraying"
-levels(rmse_df$variable)[levels(rmse_df$variable)=="percent_fum"] <- "Fumigation"
+levels(rmse_df$variable)[levels(rmse_df$variable)=="percent_fum"] <- "ULV fumigation"
 
 # Re order for plotting
 rmse_df$variable <- factor(rmse_df$variable, levels = c("Indoor residual spraying", 
-                                                        "Fumigation", 
+                                                        "ULV fumigation", 
                                                         "Space spraying"))
 
 rmse_df$value <- replace(rmse_df$value, which(rmse_df$value == 0), NA)
