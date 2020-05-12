@@ -149,8 +149,8 @@ save(mod_int_nl_pf, file = "models/mod_int_nl_pf.R")
 formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
-  f(inla.group(tmin), model = "rw1") +
-  f(inla.group(prcp), model = "rw1") +
+  tmin +
+  prcp +
   urban +
   total_poverty  +
   houses_fogged + 
@@ -171,8 +171,8 @@ save(mod_int_w_irs_pf, file = "models/mod_int_w_irs_pf.R")
 formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
-  f(inla.group(tmin), model = "rw1") +
-  f(inla.group(prcp), model = "rw1") +
+  tmin +
+  prcp +
   urban +
   total_poverty  +
   houses_fogged + 
@@ -193,8 +193,8 @@ save(mod_int_w_fum_pf, file = "models/mod_int_w_fum_pf.R")
 formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
-  f(inla.group(tmin), model = "rw1") +
-  f(inla.group(prcp), model = "rw1") +
+  tmin +
+  prcp +
   urban +
   total_poverty  +
   #houses_fogged 
