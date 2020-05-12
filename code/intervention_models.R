@@ -115,12 +115,12 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
 
 
 mod_int_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
-                    offset = log(e), verbose = TRUE,
-                    control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                           config = FALSE, 
-                                           return.marginals = FALSE), 
-                    control.predictor = list(link = 1, compute = TRUE), 
-                    control.family = list(link = "log"))
+                   offset = log(e), verbose = TRUE,
+                   control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                          config = FALSE, 
+                                          return.marginals = FALSE), 
+                   control.predictor = list(link = 1, compute = TRUE), 
+                   control.family = list(link = "log"))
 
 save(mod_int_pf, file = "models/mod_int_pf.R")
 
@@ -136,12 +136,12 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
 
 
 mod_int_nl_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
-                       offset = log(e), verbose = TRUE,
-                       control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                              config = FALSE, 
-                                              return.marginals = FALSE), 
-                       control.predictor = list(link = 1, compute = TRUE), 
-                       control.family = list(link = "log"))
+                      offset = log(e), verbose = TRUE,
+                      control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                             config = FALSE, 
+                                             return.marginals = FALSE), 
+                      control.predictor = list(link = 1, compute = TRUE), 
+                      control.family = list(link = "log"))
 
 save(mod_int_nl_pf, file = "models/mod_int_nl_pf.R")
 
@@ -159,12 +159,12 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
 
 
 mod_int_w_irs_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
-                          offset = log(e), verbose = TRUE,
-                          control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                 config = FALSE, 
-                                                 return.marginals = FALSE), 
-                          control.predictor = list(link = 1, compute = TRUE), 
-                          control.family = list(link = "log"))
+                         offset = log(e), verbose = TRUE,
+                         control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                                config = FALSE, 
+                                                return.marginals = FALSE), 
+                         control.predictor = list(link = 1, compute = TRUE), 
+                         control.family = list(link = "log"))
 
 save(mod_int_w_irs_pf, file = "models/mod_int_w_irs_pf.R")
 
@@ -181,12 +181,12 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
 
 
 mod_int_w_fum_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
-                          offset = log(e), verbose = TRUE,
-                          control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                 config = FALSE,
-                                                 return.marginals = FALSE), 
-                          control.predictor = list(link = 1, compute = TRUE), 
-                          control.family = list(link = "log"))
+                         offset = log(e), verbose = TRUE,
+                         control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                                config = FALSE,
+                                                return.marginals = FALSE), 
+                         control.predictor = list(link = 1, compute = TRUE), 
+                         control.family = list(link = "log"))
 
 save(mod_int_w_fum_pf, file = "models/mod_int_w_fum_pf.R")
 
@@ -203,12 +203,12 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
 
 
 mod_int_w_fog_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
-                          offset = log(e), verbose = TRUE,
-                          control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                 config = FALSE, 
-                                                 return.marginals = FALSE), 
-                          control.predictor = list(link = 1, compute = TRUE), 
-                          control.family = list(link = "log"))
+                         offset = log(e), verbose = TRUE,
+                         control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                                config = FALSE, 
+                                                return.marginals = FALSE), 
+                         control.predictor = list(link = 1, compute = TRUE), 
+                         control.family = list(link = "log"))
 
 save(mod_int_w_fog_pf, file = "models/mod_int_w_fog_pf.R")
 
@@ -285,12 +285,12 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
 
 
 mod_int_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
-                    offset = log(e), verbose = TRUE,
-                    control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                           config = FALSE, 
-                                           return.marginals = FALSE), 
-                    control.predictor = list(link = 1, compute = TRUE), 
-                    control.family = list(link = "log"))
+                   offset = log(e), verbose = TRUE,
+                   control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                          config = FALSE, 
+                                          return.marginals = FALSE), 
+                   control.predictor = list(link = 1, compute = TRUE), 
+                   control.family = list(link = "log"))
 
 save(mod_int_pv, file = "models/mod_int_pv.R")
 
@@ -306,12 +306,12 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
 
 
 mod_int_nl_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
-                       offset = log(e), verbose = TRUE,
-                       control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                              config = FALSE, 
-                                              return.marginals = FALSE), 
-                       control.predictor = list(link = 1, compute = TRUE), 
-                       control.family = list(link = "log"))
+                      offset = log(e), verbose = TRUE,
+                      control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                             config = FALSE, 
+                                             return.marginals = FALSE), 
+                      control.predictor = list(link = 1, compute = TRUE), 
+                      control.family = list(link = "log"))
 
 save(mod_int_nl_pv, file = "models/mod_int_nl_pv.R")
 
@@ -328,12 +328,12 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
 
 
 mod_int_w_irs_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
-                          offset = log(e), verbose = TRUE,
-                          control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                 config = FALSE, 
-                                                 return.marginals = FALSE), 
-                          control.predictor = list(link = 1, compute = TRUE), 
-                          control.family = list(link = "log"))
+                         offset = log(e), verbose = TRUE,
+                         control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                                config = FALSE, 
+                                                return.marginals = FALSE), 
+                         control.predictor = list(link = 1, compute = TRUE), 
+                         control.family = list(link = "log"))
 
 save(mod_int_w_irs_pv, file = "models/mod_int_w_irs_pv.R")
 
@@ -350,12 +350,12 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
 
 
 mod_int_w_fum_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
-                          offset = log(e), verbose = TRUE,
-                          control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                 config = FALSE, 
-                                                 return.marginals = FALSE), 
-                          control.predictor = list(link = 1, compute = TRUE), 
-                          control.family = list(link = "log"))
+                         offset = log(e), verbose = TRUE,
+                         control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                                config = FALSE, 
+                                                return.marginals = FALSE), 
+                         control.predictor = list(link = 1, compute = TRUE), 
+                         control.family = list(link = "log"))
 
 save(mod_int_w_fum_pv, file = "models/mod_int_w_fum_pv.R")
 
@@ -372,12 +372,12 @@ formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
 
 
 mod_int_w_fog_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
-                          offset = log(e), verbose = TRUE,
-                          control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                 config = FALSE, 
-                                                 return.marginals = FALSE), 
-                          control.predictor = list(link = 1, compute = TRUE), 
-                          control.family = list(link = "log"))
+                         offset = log(e), verbose = TRUE,
+                         control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                                config = FALSE, 
+                                                return.marginals = FALSE), 
+                         control.predictor = list(link = 1, compute = TRUE), 
+                         control.family = list(link = "log"))
 
 save(mod_int_w_fog_pv, file = "models/mod_int_w_fog_pv.R")
 
