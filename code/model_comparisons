@@ -1,0 +1,110 @@
+library(kableExtra)
+
+### Load models
+files <- list.files("models", pattern = ".R", full.names = TRUE)
+
+for (i in 1:length(files)) {
+
+load(files[i])
+
+}
+
+## For vivax models we use non-linear climate and for falciparum linear functions 
+
+## Create df
+model_table <- data.frame(Parasite = c(rep("P. falciparum", 6),
+                                       rep("P. vivax", 6)),
+                          
+                          Model = c("Baseline", 
+                                    "...+ t2",
+                                    "... + socioeconomic", 
+                                    "... + urban",
+                                    "... + temperature ", 
+                                    "... + precipitation ",
+                                    
+                                    "Baseline", 
+                                    "...+ t2",
+                                    "... + socioeconomic", 
+                                    "... + urban",
+                                    "... + temperature", 
+                                    "... + precipitation"),
+                          
+                          DIC   = c(format(mod1_pf$dic$dic,scientific=F),
+                                    format(mod1_2_pf$dic$dic,scientific=F),
+                                    format(mod2_pf$dic$dic,scientific=F),
+                                    format(mod3_pf$dic$dic,scientific=F),
+                                    format(mod4_l_pf$dic$dic,scientific=F),
+                                    format(mod5_l_pf$dic$dic,scientific=F),
+                                    
+                                    format(mod1_pv$dic$dic,scientific=F),
+                                    format(mod1_2_pv$dic$dic,scientific=F),
+                                    format(mod2_pv$dic$dic,scientific=F),
+                                    format(mod3_pv$dic$dic,scientific=F),
+                                    format(mod4_pv$dic$dic,scientific=F),
+                                    format(mod5_pv$dic$dic,scientific=F)),
+                          
+                          WAIC    = c(format(mod1_pf$waic$waic,scientific=F),
+                                      format(mod1_2_pf$waic$waic,scientific=F),
+                                      format(mod2_pf$waic$waic,scientific=F),
+                                      format(mod3_pf$waic$waic,scientific=F),
+                                      format(mod4_l_pf$waic$waic,scientific=F),
+                                      format(mod5_pf$waic$waic,scientific=F),
+                                      
+                                      format(mod1_pv$waic$waic,scientific=F),
+                                      format(mod1_2_pv$waic$waic,scientific=F),
+                                      format(mod2_pv$waic$waic,scientific=F),
+                                      format(mod3_pv$waic$waic,scientific=F),
+                                      format(mod4_pv$waic$waic,scientific=F),
+                                      format(mod5_pv$waic$waic,scientific=F)),
+                          
+                          ## negative mean natural logarithm of the CPO values  - smaller the better
+                          CPO    = c(format(-mean(log(mod1_pf$cpo$cpo), na.rm = T),scientific=F),
+                                     format(-mean(log(mod1_2_pf$cpo$cpo), na.rm = T),scientific=F),
+                                     format(-mean(log(mod2_pf$cpo$cpo), na.rm = T),scientific=F),
+                                     format(-mean(log(mod3_pf$cpo$cpo), na.rm = T),scientific=F),
+                                     format(-mean(log(mod4_l_pf$cpo$cpo), na.rm = T),scientific=F),
+                                     format(-mean(log(mod5_l_pf$cpo$cpo), na.rm = T),scientific=F),
+                                     
+                                     format(-mean(log(mod1_pv$cpo$cpo), na.rm = T),scientific=F),
+                                     format(-mean(log(mod1_2_pv$cpo$cpo), na.rm = T),scientific=F),
+                                     format(-mean(log(mod2_pv$cpo$cpo), na.rm = T),scientific=F),
+                                     format(-mean(log(mod3_pv$cpo$cpo), na.rm = T),scientific=F),
+                                     format(-mean(log(mod4_l_pv$cpo$cpo), na.rm = T),scientific=F),
+                                     format(-mean(log(mod5_l_pv$cpo$cpo), na.rm = T),scientific=F)),
+                          
+                          ## this is the DIC effective no. parameters
+                          pD    = c(format(mod1_pf$dic$p.eff,scientific=F),
+                                    format(mod1_2_pf$dic$p.eff,scientific=F),
+                                    format(mod2_pf$dic$p.eff,scientific=F),
+                                    format(mod3_pf$dic$p.eff,scientific=F),
+                                    format(mod4_l_pf$dic$p.eff,scientific=F),
+                                    format(mod5_l_pf$dic$p.eff,scientific=F),
+                                    
+                                    format(mod1_pv$dic$p.eff,scientific=F),
+                                    format(mod1_2_pv$dic$p.eff,scientific=F),
+                                    format(mod2_pv$dic$p.eff,scientific=F),
+                                    format(mod3_pv$dic$p.eff,scientific=F),
+                                    format(mod4_pv$dic$p.eff,scientific=F),
+                                    format(mod5_pv$dic$p.eff,scientific=F)),
+                          
+                          ## Marginal log likelihood - smaller the better
+                          MLIK = c(format(mod1_pf$mlik[2],scientific=F),
+                                   format(mod1_2_pf$mlik[2],scientific=F),
+                                   format(mod2_pf$mlik[2],scientific=F),
+                                   format(mod3_pf$mlik[2],scientific=F),
+                                   format(mod4_l_pf$mlik[2],scientific=F),
+                                   format(mod5_l_pf$mlik[2],scientific=F),
+                                   
+                                   format(mod1_pv$mlik[2],scientific=F),
+                                   format(mod1_2_pv$mlik[2],scientific=F),
+                                   format(mod2_pv$mlik[2],scientific=F),
+                                   format(mod3_pv$mlik[2],scientific=F),
+                                   format(mod4_pv$mlik[2],scientific=F),
+                                   format(mod5_pv$mlik[2],scientific=F)))
+
+
+kable(model_table, caption = " ") %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, 
+                font_size = 14) %>%
+  collapse_rows(1:2) %>%
+save_kable("model_comparisons/model_comparisons.pdf")
