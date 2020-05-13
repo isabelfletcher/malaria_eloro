@@ -33,8 +33,8 @@ data <- subset(data, data$Year < 2016 & data$Year > 2000)
 
 ## Replace NA values in intervention data to 0
 data$houses_fogged[is.na(data$houses_fogged)] <- 0
-data$houses_IRS[is.na(data$houses_IRS)]       <- 0
-data$blocks_fumigated[is.na(data$blocks_fumigated)]       <- 0
+data$houses_IRS[is.na(data$houses_IRS)] <- 0
+data$blocks_fumigated[is.na(data$blocks_fumigated)] <- 0
 
 ## Time lags
 # nb: lag in multiples of 14 for the cantons
