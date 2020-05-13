@@ -1,0 +1,198 @@
+####################### Temperature variable selection #######################
+
+## Here we select the best temperature variables for use in the spatiotemporal models
+
+
+### Define neighbourhood matrix
+ecuador <- getData('GADM', country = "ECU", level = 2)
+el_oro  <- subset(ecuador, NAME_1 == "El Oro")
+
+## Create neighbourhood matrix
+nb.map <- poly2nb(el_oro)
+nb2INLA("map.graph",nb.map)
+
+## Read in data
+data <- read.csv("data/inla_input/data.csv")
+data$cases <- as.numeric(data$cases)
+
+# Separate parasite models
+data_pf <- subset(data, data$parasite == "Falciparum")
+data_pv <- subset(data, data$parasite == "Vivax")
+
+
+#######################################################################################################################################################
+
+#### Falciparum models
+## Fixed effects
+y  <- data_pf$cases
+n  <- length(y)
+
+## Add API so modify offset to include it 
+e  <- (data_pf$Population/12)/1000
+
+
+## Climate effects, scaling the covariates
+prcp <- scale(data_pf$prcp, center = TRUE, scale = TRUE)[,1] ## in mm/day
+tmax <- scale(data_pf$tmax, center = TRUE, scale = TRUE)[,1]
+tmin <- scale(data_pf$tmin, center = TRUE, scale = TRUE)[,1]
+
+urban <- scale(data_pf$urban, center = TRUE, scale = TRUE)[,1]
+
+## Socioeconomic data
+total_poverty <- scale(data_pf$total_poverty, center = TRUE, scale = TRUE)[,1]
+
+### Random effects
+# Temporal
+t1 <- as.factor(data_pf$Month) # Seasonality
+t2 <- as.factor(data_pf$Year)  # Interannual 
+# spsatial
+s1 <- rep(1:14, 348) 
+
+
+#### Assemble df
+df_inla_pf <- data.frame(y, prcp, tmax, tmin, 
+                         urban, total_poverty,
+                         t1, t2, s1)
+
+
+######################################################################
+
+## Temperature models
+
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+  f(t1, model = "rw1") + 
+  f(t2, model = "iid") +
+  tmin +
+  prcp +
+  urban +
+  total_poverty
+
+mod_tmin_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
+                 verbose = FALSE, control.compute = list(config = T, dic = TRUE, cpo = TRUE, waic = TRUE),
+                 control.predictor = list(link = 1, compute = TRUE), offset = log(e),
+                 control.family = list(link = "log"))
+
+
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+  f(t1, model = "rw1") + 
+  f(t2, model = "iid") +
+  tmax +
+  prcp +
+  urban +
+  total_poverty
+
+mod_tmax_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
+                    verbose = FALSE, control.compute = list(config = T, dic = TRUE, cpo = TRUE, waic = TRUE),
+                    control.predictor = list(link = 1, compute = TRUE), offset = log(e),
+                    control.family = list(link = "log"))
+
+
+#######################################################################################################################################################
+
+#### Vivax models
+## Fixed effects
+y  <- data_pv$cases
+n  <- length(y)
+
+## Add API so modify offset to include it 
+e  <- (data_pv$Population/12)/1000
+
+
+## Climate effects, scaling the covariates
+prcp <- scale(data_pv$prcp, center = TRUE, scale = TRUE)[,1] ## in mm/day
+tmax <- scale(data_pv$tmax, center = TRUE, scale = TRUE)[,1]
+tmin <- scale(data_pv$tmin, center = TRUE, scale = TRUE)[,1]
+
+urban <- scale(data_pv$urban, center = TRUE, scale = TRUE)[,1]
+
+## Socioeconomic data_pv
+total_poverty <- scale(data_pv$total_poverty, center = TRUE, scale = TRUE)[,1]
+
+### Random effects
+# Temporal
+t1 <- as.factor(data_pv$Month) # Seasonality
+t2 <- as.factor(data_pv$Year)  # Interannual 
+
+# Spatial effects
+s1 <- rep(1:14, 348) 
+
+#### Assemble df
+df_inla_pv <- data.frame(y, prcp, tmax, tmin, 
+                         urban, t1, t2, s1, total_poverty)
+
+
+######################################################################
+
+## Temperature models
+
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+  f(t1, model = "rw1") +
+  f(t2, model = "iid") +
+  tmin +
+  prcp +
+  urban +
+  total_poverty
+  
+  mod_tmin_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
+                      verbose = FALSE, control.compute = list(config = T, dic = TRUE, cpo = TRUE, waic = TRUE),
+                      control.predictor = list(link = 1, compute = TRUE), offset = log(e),
+                      control.family = list(link = "log"))
+
+
+formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+  f(t1, model = "rw1") + 
+  f(t2, model = "iid") +
+  tmax +
+  prcp +
+  urban +
+  total_poverty
+  
+  mod_tmax_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
+                      verbose = FALSE, control.compute = list(config = T, dic = TRUE, cpo = TRUE, waic = TRUE),
+                      control.predictor = list(link = 1, compute = TRUE), offset = log(e),
+                      control.family = list(link = "log"))
+
+
+#################################################################################################
+###### Model summaries
+temp_table <- data.frame(Parasite = c("P. falciparum", "P. falciparum",
+                                      "P. vivax", "P. vivax"),
+                         Variable = c("Tmin", "Tmax",
+                                      "Tmin", "Tmax"),
+                         
+                         DIC      = c(mod_tmin_pf$dic$dic,
+                                      mod_tmax_pf$dic$dic,
+                                      
+                                      mod_tmin_pv$dic$dic,
+                                      mod_tmax_pv$dic$dic),
+                         
+                         WAIC      = c(mod_tmin_pf$waic$waic,
+                                      mod_tmax_pf$waic$waic,
+                                      
+                                      mod_tmin_pv$waic$waic,
+                                      mod_tmax_pv$waic$waic),
+                         
+                         Estimate = c(mod_tmin_pf$summary.fixed$mean[2],
+                                      mod_tmax_pf$summary.fixed$mean[2],
+                                      
+                                      mod_tmin_pv$summary.fixed$mean[2],
+                                      mod_tmax_pv$summary.fixed$mean[2]),
+                         
+                         LCI      = c(mod_tmin_pf$summary.fixed$`0.025quant`[2],
+                                      mod_tmax_pf$summary.fixed$`0.025quant`[2],
+                                      
+                                      mod_tmin_pv$summary.fixed$`0.025quant`[2],
+                                      mod_tmax_pv$summary.fixed$`0.025quant`[2]),
+                         
+                         UCI      = c(mod_tmin_pf$summary.fixed$`0.975quant`[2],
+                                      mod_tmax_pf$summary.fixed$`0.975quant`[2],
+                           
+                                      mod_tmin_pv$summary.fixed$`0.975quant`[2],
+                                      mod_tmax_pv$summary.fixed$`0.975quant`[2]))
+
+kable(temp_table, caption = " ") %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE, 
+                # position = "center", 
+                font_size = 14) %>%
+  collapse_rows(1:2, valign = "top") %>%
+  save_kable("model_comparisons/temperature_covariates.pdf") 
