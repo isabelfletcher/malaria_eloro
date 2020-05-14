@@ -1,9 +1,11 @@
-pacman::p_load("raster", "INLA", "sf", "sp", "spdep", "dplyr", "ggplot2",
-               "scales", "knitr", "kableExtra", "doBy", "ggpubr",
-               "RColorBrewer", "Hmisc", "cowplot", "bookdown", "raster",
-               "lattice", "rasterVis", "brinla", "miceadds", "gridExtra",
-               "ggpubr", "gganimate", "gifski", "transformr", "tidyr",
-               "ggregplot", "grid", "MASS", "INLAutils", "reshape2", "zoo")
+####################### Intervention lags #######################
+
+## Here we test for the best monthly time lags for including the three vector control measures into the models
+
+## Load libraries
+pacman::p_load("raster", "INLA","dplyr", 
+               "kableExtra", "reshape2",
+               "spdep")
 
 ### Define neighbourhood matrix
 ecuador <- getData('GADM', country = "ECU", level = 2)
@@ -16,7 +18,7 @@ nb2INLA("map.graph",nb.map)
 ## Read in data
 data <- read.csv("data/inla_input/data.csv", fileEncoding = 'latin1')
 
-## Subset data to intervention period
+## Subset data to intervention period 2001-2015
 data <- subset(data, data$Year < 2016 & data$Year > 2000)
 
 ## Replace NA values in intervention data to 0
@@ -24,9 +26,8 @@ data$houses_fogged[is.na(data$houses_fogged)] <- 0
 data$houses_IRS[is.na(data$houses_IRS)]       <- 0
 data$blocks_fumigated[is.na(data$blocks_fumigated)]       <- 0
 
-
 ## Time lags
-# nb: lag in multiples of 14 for the cantons
+# nb: lag in multiples of 14 for the 14 cantons
 data <- data %>% mutate(
   blocks_fumigated_lag1 = lag(blocks_fumigated, 14),
   blocks_fumigated_lag2 = lag(blocks_fumigated, 28),
@@ -49,7 +50,6 @@ data <- data %>% mutate(
   houses_IRS_lag5 = lag(houses_IRS, 70),
   houses_IRS_lag6 = lag(houses_IRS, 84))
 
-
 # Separate parasite models
 data_pf <- subset(data, data$parasite == "Falciparum")
 data_pv <- subset(data, data$parasite == "Vivax")
@@ -58,15 +58,6 @@ data_pv <- subset(data, data$parasite == "Vivax")
 #######################################################################################################################################################
 
 #### Falciparum models
-
-### Account for the different treatment changes
-## Add ACT treatment
-data_pf$act <- 0
-data_pf$act[data_pf$Year > 2005] <- 1
-
-data_pf$act <- as.factor(data_pf$act)
-act <- data_pf$act
-
 ## Fixed effects
 y  <- data_pf$cases
 n  <- length(y)
@@ -75,34 +66,22 @@ n  <- length(y)
 e  <- (data_pf$Population/12)/1000
 
 ## Climate effects, scaling the covariates
-prcp <- scale(data_pf$prcp_lag2, center = TRUE, scale = TRUE)[,1] ## in mm/day 
-tmin <- scale(data_pf$tmin_lag3, center = TRUE, scale = TRUE)[,1]              # ************ choose based on covariates and lags
+prcp <- scale(data_pf$prcp_lag3, center = TRUE, scale = TRUE)[,1] 
+tmin <- scale(data_pf$tmin_lag3, center = TRUE, scale = TRUE)[,1]
 
-# ENSO effects 
-nino12 <- scale(data_pf$nino12_lag3, center = TRUE, scale = TRUE)[,1] 
-nino34 <- scale(data_pf$nino34_lag2, center = TRUE, scale = TRUE)[,1] 
-
-# Land cover variables
-ndvi <- scale(data_pf$ndvi_lag1, center = TRUE, scale = TRUE)[,1]     
-urban <- scale(data_pf$urban, center = TRUE, scale = TRUE)[,1]     
+urban <- scale(data_pf$urban, center = TRUE, scale = TRUE)[,1]
 
 ## Socioeconomic data
-lights <- scale(data_pf$lights, center = TRUE, scale = TRUE)[,1] 
-total_poverty <- scale(data_pf$total_poverty, center = TRUE, scale = TRUE)[,1] 
-entradas <- scale(data_pf$entradas, center = TRUE, scale = TRUE)[,1] 
-ven_poc <- scale(data_pf$ven_poc, center = TRUE, scale = TRUE)[,1] 
-gdp_change <- scale(data_pf$gdp, center = TRUE, scale = TRUE)[,1] 
+total_poverty <- scale(data_pf$total_poverty, center = TRUE, scale = TRUE)[,1]
 
 ### Random effects
 # Temporal
 t1 <- as.factor(data_pf$Month) # Seasonality
 t2 <- as.factor(data_pf$Year)  # Interannual 
 
-# In order to include structured and unstructured effects separately in the hierarchical model they need to be specified separately, with different latent models. 
-# Structured spatial effects (model = besag)
-s1 <- rep(1:14, 180) 
-
-# Unstructured spatial effects (model = iid)
+# Spatial effects: in order to determine the variation due to spatial autocorrelation (structured effects), we specify the besag model
+# We specify the iid distribution to take into account unstructured spatial variation (heterogeneity)
+s1 <- rep(1:14, 180) # there are 14 cantons/districts
 s2 <- rep(1:14, 180) 
 
 
@@ -136,10 +115,10 @@ df_inla_pf <- data.frame(y, e,
                          houses_fogged_lag0, houses_fogged_lag1, houses_fogged_lag2, houses_fogged_lag3, houses_fogged_lag4, houses_fogged_lag5, houses_fogged_lag6,
                          houses_IRS_lag0, houses_IRS_lag1, houses_IRS_lag2, houses_IRS_lag3, houses_IRS_lag4, houses_IRS_lag5, houses_IRS_lag6,
                          blocks_fumigated_lag0, blocks_fumigated_lag1, blocks_fumigated_lag2, blocks_fumigated_lag3, blocks_fumigated_lag4, blocks_fumigated_lag5, blocks_fumigated_lag6,
-                         nino34, nino12, ndvi, urban, lights, 
-                         total_poverty, entradas, 
+                         urban, 
+                         total_poverty, 
                          tmin, prcp, 
-                         ven_poc, gdp_change, act, t1, t2, s1, s2)
+                         t1, t2, s1, s2)
 
 
 ######### Fogging
@@ -165,13 +144,14 @@ for (i in c(1:7)) {
   fogging <- scale(data_pf[,grep(comb_vec, names(data_pf), value=TRUE)], 
                    center = TRUE, scale = TRUE)[,1]
 
-  formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+  formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +      
+    f(s2, model = "iid", graph = "map.graph") +
     f(t1, model = "rw1") +
     f(t2, model = "iid") +
+    prcp +
+    tmin + 
     urban +
     total_poverty +
-    f(inla.group(prcp), model = "rw1") +
-    tmin +
     houses_IRS_lag0 +
     blocks_fumigated_lag0 +
     fogging 
@@ -180,16 +160,14 @@ for (i in c(1:7)) {
   ## Put into model
   model <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                 offset = log(e), verbose = TRUE,
-                #control.inla = list(strategy = 'adaptive'),
                 control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                       config = FALSE, # turn on when computing post. pred
-                                       return.marginals = FALSE), # turn on if using marginals
+                                       config = FALSE, 
+                                       return.marginals = FALSE), 
                 control.predictor = list(link = 1, compute = TRUE), 
                 control.family = list(link = "log"))
   
   ## Table comparison
-  fogging_data <- data.frame(Intervention = rep("Fogging", 7),
-    Model_number = i, 
+  fogging_data <- data.frame(Intervention = c("Fogging"),
                            
                            Lag = gsub("houses_fogged_lag", "", comb_vec),
                            
@@ -235,14 +213,14 @@ for (i in c(1:7)) {
   fumigation <- scale(data_pf[,grep(comb_vec, names(data_pf), value=TRUE)], 
                    center = TRUE, scale = TRUE)[,1]
   
-  formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
-    
+  formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +      
+    f(s2, model = "iid", graph = "map.graph") +
     f(t1, model = "rw1") +
     f(t2, model = "iid") +
+    prcp +
+    tmin + 
     urban +
     total_poverty +
-    f(inla.group(prcp), model = "rw1") +
-    tmin +
     houses_IRS_lag0 +
     houses_fogged_lag0 +
     fumigation 
@@ -251,16 +229,14 @@ for (i in c(1:7)) {
   ## Put into model
   model <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                 offset = log(e), verbose = TRUE,
-                #control.inla = list(strategy = 'adaptive'),
                 control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                       config = FALSE, # turn on when computing post. pred
-                                       return.marginals = FALSE), # turn on if using marginals
+                                       config = FALSE, 
+                                       return.marginals = FALSE), 
                 control.predictor = list(link = 1, compute = TRUE), 
                 control.family = list(link = "log"))
   
   ## Table comparison
-  fumigation_data <- data.frame(Intervention = rep("Fumigation", 7),
-    Model_number = i, 
+  fumigation_data <- data.frame(Intervention = c("Fumigation"),
                              
                              Lag = gsub("blocks_fumigated_lag", "", comb_vec),
                              
@@ -306,14 +282,14 @@ for (i in c(1:7)) {
   irs <- scale(data_pf[,grep(comb_vec, names(data_pf), value=TRUE)], 
                       center = TRUE, scale = TRUE)[,1]
   
-  formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
-    
+  formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +      
+    f(s2, model = "iid", graph = "map.graph") +
     f(t1, model = "rw1") +
     f(t2, model = "iid") +
+    prcp +
+    tmin + 
     urban +
     total_poverty +
-    f(inla.group(prcp), model = "rw1") +
-    tmin +
     houses_IRS_lag0 +
     houses_fogged_lag0 +
     irs 
@@ -322,16 +298,14 @@ for (i in c(1:7)) {
   ## Put into model
   model <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                 offset = log(e), verbose = TRUE,
-                #control.inla = list(strategy = 'adaptive'),
                 control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                       config = FALSE, # turn on when computing post. pred
-                                       return.marginals = FALSE), # turn on if using marginals
+                                       config = FALSE, 
+                                       return.marginals = FALSE), 
                 control.predictor = list(link = 1, compute = TRUE), 
                 control.family = list(link = "log"))
   
   ## Table comparison
-  irs_data <- data.frame(       Intervention = rep("IRS", 7),
-                                Model_number = i, 
+  irs_data <- data.frame(       Intervention = c("IRS"),
                                 
                                 Lag = gsub("houses_IRS_lag", "", comb_vec),
                                 
@@ -357,20 +331,11 @@ for (i in c(1:7)) {
 
 data <- rbind(df_irs, df_fogging, df_fumigation)
 
-write.csv(data, "model_comparisons/intervention_lags.csv")
+write.csv(data, "model_comparisons/intervention_lags_pf.csv")
 
 #######################################################################################################################################################
 
 #### Vivax models
-
-### Account for the different treatment changes
-## Add ACT treatment
-data_pv$act <- 0
-data_pv$act[data_pv$Year > 2005] <- 1
-
-data_pv$act <- as.factor(data_pv$act)
-act <- data_pv$act
-
 ## Fixed effects
 y  <- data_pv$cases
 n  <- length(y)
@@ -379,34 +344,22 @@ n  <- length(y)
 e  <- (data_pv$Population/12)/1000
 
 ## Climate effects, scaling the covariates
-prcp <- scale(data_pv$prcp_lag1, center = TRUE, scale = TRUE)[,1] ## in mm/day 
-tmin <- scale(data_pv$tmin_lag3, center = TRUE, scale = TRUE)[,1]              # ************ choose based on covariates and lags
+prcp <- scale(data_pv$prcp_lag1, center = TRUE, scale = TRUE)[,1] 
+tmin <- scale(data_pv$tmin_lag3, center = TRUE, scale = TRUE)[,1]
 
-# ENSO effects 
-nino12 <- scale(data_pv$nino12_lag3, center = TRUE, scale = TRUE)[,1] 
-nino34 <- scale(data_pv$nino34_lag2, center = TRUE, scale = TRUE)[,1] 
-
-# Land cover variables
-ndvi <- scale(data_pv$ndvi_lag1, center = TRUE, scale = TRUE)[,1]     
-urban <- scale(data_pv$urban, center = TRUE, scale = TRUE)[,1]     
+urban <- scale(data_pv$urban, center = TRUE, scale = TRUE)[,1]
 
 ## Socioeconomic data
-lights <- scale(data_pv$lights, center = TRUE, scale = TRUE)[,1] 
-total_poverty <- scale(data_pv$total_poverty, center = TRUE, scale = TRUE)[,1] 
-entradas <- scale(data_pv$entradas, center = TRUE, scale = TRUE)[,1] 
-ven_poc <- scale(data_pv$ven_poc, center = TRUE, scale = TRUE)[,1] 
-gdp_change <- scale(data_pv$gdp, center = TRUE, scale = TRUE)[,1] 
+total_poverty <- scale(data_pv$total_poverty, center = TRUE, scale = TRUE)[,1]
 
 ### Random effects
 # Temporal
 t1 <- as.factor(data_pv$Month) # Seasonality
 t2 <- as.factor(data_pv$Year)  # Interannual 
 
-# In order to include structured and unstructured effects separately in the hierarchical model they need to be specified separately, with different latent models. 
-# Structured spatial effects (model = besag)
-s1 <- rep(1:14, 180) 
-
-# Unstructured spatial effects (model = iid)
+# Spatial effects: in order to determine the variation due to spatial autocorrelation (structured effects), we specify the besag model
+# We specify the iid distribution to take into account unstructured spatial variation (heterogeneity)
+s1 <- rep(1:14, 180) # there are 14 cantons/districts
 s2 <- rep(1:14, 180) 
 
 
@@ -440,10 +393,10 @@ df_inla_pv <- data.frame(y, e,
                          houses_fogged_lag0, houses_fogged_lag1, houses_fogged_lag2, houses_fogged_lag3, houses_fogged_lag4, houses_fogged_lag5, houses_fogged_lag6,
                          houses_IRS_lag0, houses_IRS_lag1, houses_IRS_lag2, houses_IRS_lag3, houses_IRS_lag4, houses_IRS_lag5, houses_IRS_lag6,
                          blocks_fumigated_lag0, blocks_fumigated_lag1, blocks_fumigated_lag2, blocks_fumigated_lag3, blocks_fumigated_lag4, blocks_fumigated_lag5, blocks_fumigated_lag6,
-                         nino34, nino12, ndvi, urban, lights, 
-                         total_poverty, entradas, 
+                         urban, 
+                         total_poverty, 
                          tmin, prcp, 
-                         ven_poc, gdp_change, act, t1, t2, s1, s2)
+                         t1, t2, s1, s2)
 
 
 ######### Fogging
@@ -469,14 +422,14 @@ for (i in c(1:7)) {
   fogging <- scale(data_pv[,grep(comb_vec, names(data_pv), value=TRUE)], 
                    center = TRUE, scale = TRUE)[,1]
   
-  formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
-    
+  formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +      
+    f(s2, model = "iid", graph = "map.graph") +
     f(t1, model = "rw1") +
     f(t2, model = "iid") +
+    f(inla.group(prcp), model = "rw1") +
+    f(inla.group(tmin), model = "rw1") + 
     urban +
     total_poverty +
-    f(inla.group(prcp), model = "rw1") +
-    f(inla.group(tmin), model = "rw1") +
     houses_IRS_lag0 +
     blocks_fumigated_lag0 +
     fogging 
@@ -485,16 +438,14 @@ for (i in c(1:7)) {
   ## Put into model
   model <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
                 offset = log(e), verbose = TRUE,
-                #control.inla = list(strategy = 'adaptive'),
                 control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                       config = FALSE, # turn on when computing post. pred
-                                       return.marginals = FALSE), # turn on if using marginals
+                                       config = FALSE, 
+                                       return.marginals = FALSE), 
                 control.predictor = list(link = 1, compute = TRUE), 
                 control.family = list(link = "log"))
   
   ## Table comparison
-  fogging_data <- data.frame(Intervention = rep("Fogging", 7),
-                             Model_number = i, 
+  fogging_data <- data.frame(Intervention = c("Fogging"),
                              
                              Lag = gsub("houses_fogged_lag", "", comb_vec),
                              
@@ -540,14 +491,14 @@ for (i in c(1:7)) {
   fumigation <- scale(data_pv[,grep(comb_vec, names(data_pv), value=TRUE)], 
                       center = TRUE, scale = TRUE)[,1]
   
-  formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
-    
+  formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +      
+    f(s2, model = "iid", graph = "map.graph") +
     f(t1, model = "rw1") +
     f(t2, model = "iid") +
+    f(inla.group(prcp), model = "rw1") +
+    f(inla.group(tmin), model = "rw1") + 
     urban +
     total_poverty +
-    f(inla.group(prcp), model = "rw1") +
-    f(inla.group(tmin), model = "rw1") +
     houses_IRS_lag0 +
     houses_fogged_lag0 +
     fumigation 
@@ -556,16 +507,14 @@ for (i in c(1:7)) {
   ## Put into model
   model <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
                 offset = log(e), verbose = TRUE,
-                #control.inla = list(strategy = 'adaptive'),
                 control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                       config = FALSE, # turn on when computing post. pred
-                                       return.marginals = FALSE), # turn on if using marginals
+                                       config = FALSE, 
+                                       return.marginals = FALSE), 
                 control.predictor = list(link = 1, compute = TRUE), 
                 control.family = list(link = "log"))
   
   ## Table comparison
-  fumigation_data <- data.frame(Intervention = rep("Fumigation", 7),
-                                Model_number = i, 
+  fumigation_data <- data.frame(Intervention = c("Fumigation"),
                                 
                                 Lag = gsub("blocks_fumigated_lag", "", comb_vec),
                                 
@@ -611,14 +560,14 @@ for (i in c(1:7)) {
   irs <- scale(data_pv[,grep(comb_vec, names(data_pv), value=TRUE)], 
                center = TRUE, scale = TRUE)[,1]
   
-  formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
-    
+  formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +      
+    f(s2, model = "iid", graph = "map.graph") +
     f(t1, model = "rw1") +
     f(t2, model = "iid") +
+    f(inla.group(prcp), model = "rw1") +
+    f(inla.group(tmin), model = "rw1") + 
     urban +
     total_poverty +
-    f(inla.group(prcp), model = "rw1") +
-    f(inla.group(tmin), model = "rw1") +
     houses_IRS_lag0 +
     houses_fogged_lag0 +
     irs 
@@ -627,16 +576,14 @@ for (i in c(1:7)) {
   ## Put into model
   model <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
                 offset = log(e), verbose = TRUE,
-                #control.inla = list(strategy = 'adaptive'),
                 control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                       config = FALSE, # turn on when computing post. pred
-                                       return.marginals = FALSE), # turn on if using marginals
+                                       config = FALSE, 
+                                       return.marginals = FALSE), 
                 control.predictor = list(link = 1, compute = TRUE), 
                 control.family = list(link = "log"))
   
   ## Table comparison
-  irs_data <- data.frame(       Intervention = rep("IRS", 7),
-                                Model_number = i, 
+  irs_data <- data.frame(       Intervention = c("IRS"),
                                 
                                 Lag = gsub("houses_IRS_lag", "", comb_vec),
                                 
