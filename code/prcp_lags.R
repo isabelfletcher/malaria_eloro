@@ -542,4 +542,4 @@ kable(prcp_table, caption = " ") %>%
   collapse_rows(1:2, valign = "top") %>%
   save_kable("model_comparisons/prcp_lags_int.pdf")
 
-write.csv(prcp_table, file = "model_comparisons/prcp_lags_int.csv")
+write.csv(prcp_table, file = "model_comparisons/prcp_lags.csv")
