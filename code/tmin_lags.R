@@ -543,6 +543,6 @@ kable(tmin_table, caption = " ") %>%
   kable_styling(bootstrap_options = "striped", full_width = FALSE, 
                 font_size = 14) %>%
   collapse_rows(1:2, valign = "top") %>%
-  save_kable("model_comparisons/tmin_lags_int.pdf")
+  save_kable("model_comparisons/tmin_lags.pdf")
 
-write.csv(tmin_table, file = "model_comparisons/tmin_lags_int.csv")
+write.csv(tmin_table, file = "model_comparisons/tmin_lags.csv")
