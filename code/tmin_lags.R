@@ -1,5 +1,11 @@
 ####################### Temperature lags #######################
 
+## Here we test for the best monthly time lags for minimum temperature
+
+## Load libraries
+pacman::p_load("raster", "INLA","dplyr", 
+               "kableExtra", "reshape2",
+               "spdep")
 
 ### Define neighbourhood matrix
 ecuador <- getData('GADM', country = "ECU", level = 2)
@@ -13,14 +19,19 @@ nb2INLA("map.graph",nb.map)
 data <- read.csv("data/inla_input/data.csv")
 data$cases <- as.numeric(data$cases)
 
+## Add intervention period (2001-2015) before/after
+data$int_per <- 0
+data$int_per[data$Year > 2000] <- 1
 
 # Separate parasite models
 data_pf <- subset(data, data$parasite == "Falciparum")
 data_pv <- subset(data, data$parasite == "Vivax")
 
+
 #######################################################################################################################################################
 
 #### Falciparum models
+int_per <- as.factor(data_pf$int_per)
 
 ## Fixed effects
 y  <- data_pf$cases
@@ -31,25 +42,23 @@ e  <- (data_pf$Population/12)/1000
 
 
 ## Climate effects, scaling the covariates
-prcp <- scale(data_pf$prcp, center = TRUE, scale = TRUE)[,1] ## in mm/day
-tmax <- scale(data_pf$tmax, center = TRUE, scale = TRUE)[,1]
+prcp <- scale(data_pf$prcp, center = TRUE, scale = TRUE)[,1] 
 tmin <- scale(data_pf$tmin, center = TRUE, scale = TRUE)[,1]
+
 urban <- scale(data_pf$urban, center = TRUE, scale = TRUE)[,1]
 
 ## Socioeconomic data
 total_poverty <- scale(data_pf$total_poverty, center = TRUE, scale = TRUE)[,1]
-
-blocks_fumigated <- scale(data_pf$blocks_fumigated, center = TRUE, scale = TRUE)[,1] 
-houses_IRS    <- scale(data_pf$houses_IRS, center = TRUE, scale = TRUE)[,1]
-houses_fogged <- scale(data_pf$houses_fogged, center = TRUE, scale = TRUE)[,1]
 
 ### Random effects
 # Temporal
 t1 <- as.factor(data_pf$Month) # Seasonality
 t2 <- as.factor(data_pf$Year)  # Interannual 
 
-# Spatial effects
-s1 <- rep(1:14, 348) 
+# Spatial effects: in order to determine the variation due to spatial autocorrelation (structured effects), we specify the besag model
+# We specify the iid distribution to take into account unstructured spatial variation (heterogeneity)
+s1 <- rep(1:14, 348) # there are 14 cantons/districts
+s2 <- rep(1:14, 348) 
 
 
 ##################################
@@ -59,155 +68,176 @@ tmin_lag1 <- scale(data_pf$tmin_lag1, center = TRUE, scale = TRUE)[,1]
 tmin_lag2 <- scale(data_pf$tmin_lag2, center = TRUE, scale = TRUE)[,1]
 tmin_lag3 <- scale(data_pf$tmin_lag3, center = TRUE, scale = TRUE)[,1]
 
-df_inla_pf <- data.frame(y, prcp, tmax, tmin, tmin_lag1,
+df_inla_pf <- data.frame(y, prcp, tmin, tmin_lag1,
                          tmin_lag2, tmin_lag3, 
-                         t1, t2, s1, total_poverty, urban)
+                         t1, t2, s1, s2, total_poverty, urban, int_per)
 
 
 ###########################################################################################################
 ## Test with all other covariates
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   tmin +
   prcp + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 
 mod_tmin_lag0_l_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                            offset = log(e), verbose = TRUE,
-                           #control.inla = list(strategy = 'adaptive'),
                            control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                  config = FALSE, # turn on when computing post. pred
-                                                  return.marginals = FALSE), # turn on if using marginals
+                                                  config = FALSE, 
+                                                  return.marginals = FALSE), 
                            control.predictor = list(link = 1, compute = TRUE), 
                            control.family = list(link = "log"))
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin), model = "rw1") +
   f(inla.group(prcp), model = "rw1") + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 mod_tmin_lag0_nl_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                             offset = log(e), verbose = TRUE,
-                            #control.inla = list(strategy = 'adaptive'),
                             control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                   config = FALSE, # turn on when computing post. pred
-                                                   return.marginals = FALSE), # turn on if using marginals
+                                                   config = FALSE, 
+                                                   return.marginals = FALSE), 
                             control.predictor = list(link = 1, compute = TRUE), 
                             control.family = list(link = "log"))
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   tmin_lag1 +
   prcp + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 
 mod_tmin_lag1_l_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                            offset = log(e), verbose = TRUE,
-                           #control.inla = list(strategy = 'adaptive'),
                            control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                  config = FALSE, # turn on when computing post. pred
-                                                  return.marginals = FALSE), # turn on if using marginals
+                                                  config = FALSE, 
+                                                  return.marginals = FALSE), 
                            control.predictor = list(link = 1, compute = TRUE), 
                            control.family = list(link = "log"))
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin_lag1), model = "rw1") +
   f(inla.group(prcp), model = "rw1") + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 
 mod_tmin_lag1_nl_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                             offset = log(e), verbose = TRUE,
-                            #control.inla = list(strategy = 'adaptive'),
                             control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                   config = FALSE, # turn on when computing post. pred
-                                                   return.marginals = FALSE), # turn on if using marginals
+                                                   config = FALSE, 
+                                                   return.marginals = FALSE), 
                             control.predictor = list(link = 1, compute = TRUE), 
                             control.family = list(link = "log"))
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   tmin_lag2 +
   prcp + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 
 mod_tmin_lag2_l_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                            offset = log(e), verbose = TRUE,
-                           #control.inla = list(strategy = 'adaptive'),
                            control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                  config = FALSE, # turn on when computing post. pred
-                                                  return.marginals = FALSE), # turn on if using marginals
+                                                  config = FALSE, 
+                                                  return.marginals = FALSE), 
                            control.predictor = list(link = 1, compute = TRUE), 
                            control.family = list(link = "log"))
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin_lag2), model = "rw1") +
   f(inla.group(prcp), model = "rw1") + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
-
 
 mod_tmin_lag2_nl_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                             offset = log(e), verbose = TRUE,
-                            #control.inla = list(strategy = 'adaptive'),
                             control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                   config = FALSE, # turn on when computing post. pred
-                                                   return.marginals = FALSE), # turn on if using marginals
+                                                   config = FALSE, 
+                                                   return.marginals = FALSE), 
                             control.predictor = list(link = 1, compute = TRUE), 
                             control.family = list(link = "log"))
 
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
-
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   tmin_lag3 +
   prcp + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
-
 
 mod_tmin_lag3_l_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                            offset = log(e), verbose = TRUE,
-                           #control.inla = list(strategy = 'adaptive'),
                            control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                  config = FALSE, # turn on when computing post. pred
-                                                  return.marginals = FALSE), # turn on if using marginals
+                                                  config = FALSE, 
+                                                  return.marginals = FALSE), 
                            control.predictor = list(link = 1, compute = TRUE), 
                            control.family = list(link = "log"))
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin_lag3), model = "rw1") +
   f(inla.group(prcp), model = "rw1") + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 
 mod_tmin_lag3_nl_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                             offset = log(e), verbose = TRUE,
-                            #control.inla = list(strategy = 'adaptive'),
                             control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                   config = FALSE, # turn on when computing post. pred
-                                                   return.marginals = FALSE), # turn on if using marginals
+                                                   config = FALSE, 
+                                                   return.marginals = FALSE), 
                             control.predictor = list(link = 1, compute = TRUE), 
                             control.family = list(link = "log"))
 
@@ -215,6 +245,7 @@ mod_tmin_lag3_nl_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednb
 #######################################################################################################################################################
 
 #### Vivax models
+int_per <- as.factor(data_pv$int_per)
 
 ## Fixed effects
 y  <- data_pv$cases
@@ -225,8 +256,7 @@ e  <- (data_pv$Population/12)/1000
 
 
 ## Climate effects, scaling the covariates
-prcp <- scale(data_pv$prcp, center = TRUE, scale = TRUE)[,1] ## in mm/day
-tmax <- scale(data_pv$tmax, center = TRUE, scale = TRUE)[,1]
+prcp <- scale(data_pv$prcp, center = TRUE, scale = TRUE)[,1] 
 tmin <- scale(data_pv$tmin, center = TRUE, scale = TRUE)[,1]
 
 urban <- scale(data_pv$urban, center = TRUE, scale = TRUE)[,1]
@@ -234,17 +264,15 @@ urban <- scale(data_pv$urban, center = TRUE, scale = TRUE)[,1]
 ## Socioeconomic data_pv
 total_poverty <- scale(data_pv$total_poverty, center = TRUE, scale = TRUE)[,1]
 
-blocks_fumigated <- scale(data_pv$blocks_fumigated, center = TRUE, scale = TRUE)[,1]
-houses_IRS    <- scale(data_pv$houses_IRS, center = TRUE, scale = TRUE)[,1]
-houses_fogged <- scale(data_pv$houses_fogged, center = TRUE, scale = TRUE)[,1]
-
 ### Random effects
 # Temporal
 t1 <- as.factor(data_pv$Month) # Seasonality
 t2 <- as.factor(data_pv$Year)  # Interannual 
 
-# Spatial
-s1 <- rep(1:14, 348) 
+# Spatial effects: in order to determine the variation due to spatial autocorrelation (structured effects), we specify the besag model
+# We specify the iid distribution to take into account unstructured spatial variation (heterogeneity)
+s1 <- rep(1:14, 348) # there are 14 cantons/districts
+s2 <- rep(1:14, 348) 
 
 
 ##################################
@@ -255,156 +283,178 @@ tmin_lag2 <- scale(data_pv$tmin_lag2, center = TRUE, scale = TRUE)[,1]
 tmin_lag3 <- scale(data_pv$tmin_lag3, center = TRUE, scale = TRUE)[,1]
 
 df_inla_pv <- data.frame(y, prcp, tmin, tmin_lag1,
-                         tmin_lag2, tmin_lag3, tmax,
-                         t1, t2, s1, urban, total_poverty)
+                         tmin_lag2, tmin_lag3, 
+                         t1, t2, s1, s2, urban, total_poverty, int_per)
 
 ###########################################################################################################
 ## Test with all other covariates
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   tmin +
   prcp + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 
 mod_tmin_lag0_l_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
                            offset = log(e), verbose = TRUE,
-                           #control.inla = list(strategy = 'adaptive'),
                            control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                  config = FALSE, # turn on when computing post. pred
-                                                  return.marginals = FALSE), # turn on if using marginals
+                                                  config = FALSE, 
+                                                  return.marginals = FALSE), 
                            control.predictor = list(link = 1, compute = TRUE), 
                            control.family = list(link = "log"))
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin), model = "rw1") +
   f(inla.group(prcp), model = "rw1") + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 mod_tmin_lag0_nl_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
                             offset = log(e), verbose = TRUE,
-                            #control.inla = list(strategy = 'adaptive'),
                             control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                   config = FALSE, # turn on when computing post. pred
-                                                   return.marginals = FALSE), # turn on if using marginals
+                                                   config = FALSE, 
+                                                   return.marginals = FALSE), 
                             control.predictor = list(link = 1, compute = TRUE), 
                             control.family = list(link = "log"))
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   tmin_lag1 +
   prcp + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 
 mod_tmin_lag1_l_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
                            offset = log(e), verbose = TRUE,
-                           #control.inla = list(strategy = 'adaptive'),
                            control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                  config = FALSE, # turn on when computing post. pred
-                                                  return.marginals = FALSE), # turn on if using marginals
+                                                  config = FALSE, 
+                                                  return.marginals = FALSE), 
                            control.predictor = list(link = 1, compute = TRUE), 
                            control.family = list(link = "log"))
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin_lag1), model = "rw1") +
   f(inla.group(prcp), model = "rw1") + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 
 mod_tmin_lag1_nl_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
                             offset = log(e), verbose = TRUE,
-                            #control.inla = list(strategy = 'adaptive'),
                             control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                   config = FALSE, # turn on when computing post. pred
-                                                   return.marginals = FALSE), # turn on if using marginals
+                                                   config = FALSE, 
+                                                   return.marginals = FALSE), 
                             control.predictor = list(link = 1, compute = TRUE), 
                             control.family = list(link = "log"))
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
-
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   tmin_lag2 +
   prcp + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 
 mod_tmin_lag2_l_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
                            offset = log(e), verbose = TRUE,
-                           #control.inla = list(strategy = 'adaptive'),
                            control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                  config = FALSE, # turn on when computing post. pred
-                                                  return.marginals = FALSE), # turn on if using marginals
+                                                  config = FALSE, 
+                                                  return.marginals = FALSE), 
                            control.predictor = list(link = 1, compute = TRUE), 
                            control.family = list(link = "log"))
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin_lag2), model = "rw1") +
   f(inla.group(prcp), model = "rw1") + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 
 mod_tmin_lag2_nl_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
                             offset = log(e), verbose = TRUE,
-                            #control.inla = list(strategy = 'adaptive'),
                             control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                   config = FALSE, # turn on when computing post. pred
-                                                   return.marginals = FALSE), # turn on if using marginals
+                                                   config = FALSE, 
+                                                   return.marginals = FALSE), 
                             control.predictor = list(link = 1, compute = TRUE), 
                             control.family = list(link = "log"))
 
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
-
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   tmin_lag3 +
   prcp + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 
 mod_tmin_lag3_l_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
                            offset = log(e), verbose = TRUE,
-                           #control.inla = list(strategy = 'adaptive'),
                            control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                  config = FALSE, # turn on when computing post. pred
-                                                  return.marginals = FALSE), # turn on if using marginals
+                                                  config = FALSE, 
+                                                  return.marginals = FALSE), 
                            control.predictor = list(link = 1, compute = TRUE), 
                            control.family = list(link = "log"))
 
-formula <- y ~ 1 + f(s1, model = "bym2", graph = "map.graph") +
+formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +   
+  f(s2, model = "iid", graph = "map.graph") +
   f(t1, model = "rw1") +
   f(t2, model = "iid") +
   f(inla.group(tmin_lag3), model = "rw1") +
   f(inla.group(prcp), model = "rw1") + 
   urban +
+  ## Add interaction
+  int_per + 
+  urban*int_per +
   total_poverty 
 
 
 mod_tmin_lag3_nl_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
-                            offset = log(e), verbose = TRUE,
-                            #control.inla = list(strategy = 'adaptive'),
-                            control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                                   config = FALSE, # turn on when computing post. pred
-                                                   return.marginals = FALSE), # turn on if using marginals
-                            control.predictor = list(link = 1, compute = TRUE), 
-                            control.family = list(link = "log"))
+                           offset = log(e), verbose = TRUE,
+                           control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
+                                                  config = FALSE, 
+                                                  return.marginals = FALSE), 
+                           control.predictor = list(link = 1, compute = TRUE), 
+                           control.family = list(link = "log"))
 
 
 ########################################################################################################
@@ -425,7 +475,7 @@ tmin_table <- data.frame(Parasite = c(rep("P. falciparum", 4),
                                           rep("Non-linear", 8)), 
                          
                          DIC      = c(mod_tmin_lag0_l_pf$dic$dic, mod_tmin_lag1_l_pf$dic$dic,
-                                      mod_tmin_lag2_l_pf$dic$dic,mod_tmin_lag3_l_pf$dic$dic,
+                                      mod_tmin_lag2_l_pf$dic$dic, mod_tmin_lag3_l_pf$dic$dic,
                                       
                                       mod_tmin_lag0_l_pv$dic$dic,mod_tmin_lag1_l_pv$dic$dic,
                                       mod_tmin_lag2_l_pv$dic$dic,mod_tmin_lag3_l_pv$dic$dic,
@@ -448,45 +498,51 @@ tmin_table <- data.frame(Parasite = c(rep("P. falciparum", 4),
                                        mod_tmin_lag0_nl_pv$waic$waic,mod_tmin_lag1_nl_pv$waic$waic,
                                        mod_tmin_lag2_nl_pv$waic$waic,mod_tmin_lag3_nl_pv$waic$waic),
                          
-                         Estimate = c(mod_tmin_lag0_l_pf$summary.fixed$mean[2],mod_tmin_lag1_l_pf$summary.fixed$mean[2],
-                                      mod_tmin_lag2_l_pf$summary.fixed$mean[2],mod_tmin_lag3_l_pf$summary.fixed$mean[2],
+                         Estimate = c(mod_tmin_lag0_l_pf$summary.fixed$mean[2], mod_tmin_lag1_l_pf$summary.fixed$mean[2],
+                                      mod_tmin_lag2_l_pf$summary.fixed$mean[2], mod_tmin_lag3_l_pf$summary.fixed$mean[2],
                                       
-                                      mod_tmin_lag0_l_pv$summary.fixed$mean[2],mod_tmin_lag1_l_pv$summary.fixed$mean[2],
-                                      mod_tmin_lag2_l_pv$summary.fixed$mean[2],mod_tmin_lag3_l_pv$summary.fixed$mean[2],
+                                      mod_tmin_lag0_l_pv$summary.fixed$mean[2], mod_tmin_lag1_l_pv$summary.fixed$mean[2],
+                                      mod_tmin_lag2_l_pv$summary.fixed$mean[2], mod_tmin_lag3_l_pv$summary.fixed$mean[2],
                                       
-                                      mod_tmin_lag0_nl_pf$summary.fixed$mean[2],mod_tmin_lag1_nl_pf$summary.fixed$mean[2],
+                                      mod_tmin_lag0_nl_pf$summary.fixed$mean[2], mod_tmin_lag1_nl_pf$summary.fixed$mean[2],
                                       mod_tmin_lag2_nl_pf$summary.fixed$mean[2], mod_tmin_lag3_nl_pf$summary.fixed$mean[2],
                                       
-                                      mod_tmin_lag0_nl_pv$summary.fixed$mean[2],mod_tmin_lag1_nl_pv$summary.fixed$mean[2],
+                                      mod_tmin_lag0_nl_pv$summary.fixed$mean[2], mod_tmin_lag1_nl_pv$summary.fixed$mean[2],
                                       mod_tmin_lag2_nl_pv$summary.fixed$mean[2], mod_tmin_lag3_nl_pv$summary.fixed$mean[2]),
                          
-                         LCI      = c(mod_tmin_lag0_l_pf$summary.fixed$`0.025quant`[2],mod_tmin_lag1_l_pf$summary.fixed$`0.025quant`[2],
-                                      mod_tmin_lag2_l_pf$summary.fixed$`0.025quant`[2],mod_tmin_lag3_l_pf$summary.fixed$`0.025quant`[2],
+                         LCI      = c(mod_tmin_lag0_l_pf$summary.fixed$`0.025quant`[2], mod_tmin_lag1_l_pf$summary.fixed$`0.025quant`[2],
+                                      mod_tmin_lag2_l_pf$summary.fixed$`0.025quant`[2], mod_tmin_lag3_l_pf$summary.fixed$`0.025quant`[2],
                                       
-                                      mod_tmin_lag0_l_pv$summary.fixed$`0.025quant`[2],mod_tmin_lag1_l_pv$summary.fixed$`0.025quant`[2],
-                                      mod_tmin_lag2_l_pv$summary.fixed$`0.025quant`[2],mod_tmin_lag3_l_pv$summary.fixed$`0.025quant`[2],
+                                      mod_tmin_lag0_l_pv$summary.fixed$`0.025quant`[2], mod_tmin_lag1_l_pv$summary.fixed$`0.025quant`[2],
+                                      mod_tmin_lag2_l_pv$summary.fixed$`0.025quant`[2], mod_tmin_lag3_l_pv$summary.fixed$`0.025quant`[2],
                                       
-                                      mod_tmin_lag0_nl_pf$summary.fixed$`0.025quant`[2],mod_tmin_lag1_nl_pf$summary.fixed$`0.025quant`[2],
-                                      mod_tmin_lag2_nl_pf$summary.fixed$`0.025quant`[2],mod_tmin_lag3_nl_pf$summary.fixed$`0.025quant`[2],
+                                      mod_tmin_lag0_nl_pf$summary.fixed$`0.025quant`[2], mod_tmin_lag1_nl_pf$summary.fixed$`0.025quant`[2],
+                                      mod_tmin_lag2_nl_pf$summary.fixed$`0.025quant`[2], mod_tmin_lag3_nl_pf$summary.fixed$`0.025quant`[2],
                                       
-                                      mod_tmin_lag0_nl_pv$summary.fixed$`0.025quant`[2],mod_tmin_lag1_nl_pv$summary.fixed$`0.025quant`[2],
-                                      mod_tmin_lag2_nl_pv$summary.fixed$`0.025quant`[2],mod_tmin_lag3_nl_pv$summary.fixed$`0.025quant`[2]),
+                                      mod_tmin_lag0_nl_pv$summary.fixed$`0.025quant`[2], mod_tmin_lag1_nl_pv$summary.fixed$`0.025quant`[2],
+                                      mod_tmin_lag2_nl_pv$summary.fixed$`0.025quant`[2], mod_tmin_lag3_nl_pv$summary.fixed$`0.025quant`[2]),
                          
-                         UCI      = c(mod_tmin_lag0_l_pf$summary.fixed$`0.975quant`[2],mod_tmin_lag1_l_pf$summary.fixed$`0.975quant`[2],
-                                      mod_tmin_lag2_l_pf$summary.fixed$`0.975quant`[2],mod_tmin_lag3_l_pf$summary.fixed$`0.975quant`[2],
+                         UCI      = c(mod_tmin_lag0_l_pf$summary.fixed$`0.975quant`[2], mod_tmin_lag1_l_pf$summary.fixed$`0.975quant`[2],
+                                      mod_tmin_lag2_l_pf$summary.fixed$`0.975quant`[2], mod_tmin_lag3_l_pf$summary.fixed$`0.975quant`[2],
                                       
-                                      mod_tmin_lag0_l_pv$summary.fixed$`0.975quant`[2],mod_tmin_lag1_l_pv$summary.fixed$`0.975quant`[2],
-                                      mod_tmin_lag2_l_pv$summary.fixed$`0.975quant`[2],mod_tmin_lag3_l_pv$summary.fixed$`0.975quant`[2],
+                                      mod_tmin_lag0_l_pv$summary.fixed$`0.975quant`[2], mod_tmin_lag1_l_pv$summary.fixed$`0.975quant`[2],
+                                      mod_tmin_lag2_l_pv$summary.fixed$`0.975quant`[2], mod_tmin_lag3_l_pv$summary.fixed$`0.975quant`[2],
                                       
-                                      mod_tmin_lag0_nl_pf$summary.fixed$`0.975quant`[2],mod_tmin_lag1_nl_pf$summary.fixed$`0.975quant`[2],
-                                      mod_tmin_lag2_nl_pf$summary.fixed$`0.975quant`[2],mod_tmin_lag3_nl_pf$summary.fixed$`0.975quant`[2],
+                                      mod_tmin_lag0_nl_pf$summary.fixed$`0.975quant`[2], mod_tmin_lag1_nl_pf$summary.fixed$`0.975quant`[2],
+                                      mod_tmin_lag2_nl_pf$summary.fixed$`0.975quant`[2], mod_tmin_lag3_nl_pf$summary.fixed$`0.975quant`[2],
                                       
-                                      mod_tmin_lag0_nl_pv$summary.fixed$`0.975quant`[2],mod_tmin_lag1_nl_pv$summary.fixed$`0.975quant`[2],
-                                      mod_tmin_lag2_nl_pv$summary.fixed$`0.975quant`[2],mod_tmin_lag3_nl_pv$summary.fixed$`0.975quant`[2]))
+                                      mod_tmin_lag0_nl_pv$summary.fixed$`0.975quant`[2], mod_tmin_lag1_nl_pv$summary.fixed$`0.975quant`[2],
+                                      mod_tmin_lag2_nl_pv$summary.fixed$`0.975quant`[2], mod_tmin_lag3_nl_pv$summary.fixed$`0.975quant`[2]))
+
+tmin_table <- tmin_table %>% mutate(Estimate = round(Estimate, 2),
+                                    LCI      = round(LCI, 2),
+                                    UCI      = round(UCI, 2))
 
 
 kable(tmin_table, caption = " ") %>%
   kable_styling(bootstrap_options = "striped", full_width = FALSE, 
                 font_size = 14) %>%
   collapse_rows(1:2, valign = "top") %>%
-  save_kable("model_comparisons/tmin_lags.pdf")
+  save_kable("model_comparisons/tmin_lags_int.pdf")
+
+write.csv(tmin_table, file = "model_comparisons/tmin_lags_int.csv")
