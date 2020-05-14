@@ -543,6 +543,6 @@ kable(tmax_table, caption = " ") %>%
   kable_styling(bootstrap_options = "striped", full_width = FALSE, 
                 font_size = 14) %>%
   collapse_rows(1:2, valign = "top") %>%
-  save_kable("model_comparisons/tmax_lags_int.pdf")
+  save_kable("model_comparisons/tmax_lags.pdf")
 
 write.csv(tmax_table, file = "model_comparisons/tmax_lags.csv")
