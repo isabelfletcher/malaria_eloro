@@ -1,59 +1,43 @@
-library(ggplot2)
-library(dplyr)
-library(RColorBrewer)
-library(ggplot2)
-library(raster)
-library(scales)
-library(doBy)
-library(ggsn)
-library(maptools)
-library(maps)
-library(sp)
-library(dplyr)
-library(pipeR)
-library(plyr)
-library(cowplot)
-library(lattice)
-library(rasterVis)
-library(gganimate)
-library(reshape2)
-library(transformr)
-library(ggpubr)
-library(gridExtra)
-library(rgdal)
-library(cowplot)
-library(shades)
-library(sf)
+#############################################################################################################
+
+### Figures for examining the impact of climate and interventions on malaria incidence in El Oro, Ecuador 
+
+#############################################################################################################
+
+## Load libraries
+pacman::p_load("raster", "INLA","dplyr", 
+               "kableExtra", "reshape2", "ggplot2",
+               "scales", "gridExtra", "RColorBrewer",
+               "ggsn", "ggpubr")
+
 
 ################################################################################################
 
-####### Plot parameter estimates of final model
-
-# Load models
-load("models/mod6_l_pf.R")
-load("models/mod6_l_pv.R")
+## Plot parameter estimates of final model 
+load("models/mod6_pf.R")
+load("models/mod6_pv.R")
 
 ## Create dataframe of values
 data <- data.frame(Covariate  = c("Poverty", "Poverty",
-                                  "Urban", "Urban",
+                                  "Level of\nurbanization", "Level of\nurbanization",
                                   "Minimum\ntemperature", "Minimum\ntemperature",
                                   "Precipitation", "Precipitation"),
                    
-                   mean     = c(mod6_l_pf$summary.fixed$mean[2], mod6_l_pv$summary.fixed$mean[2],
-                                mod6_l_pf$summary.fixed$mean[3], mod6_l_pv$summary.fixed$mean[3],
-                                mod6_l_pf$summary.fixed$mean[4], mod6_l_pv$summary.fixed$mean[4],
-                                mod6_l_pf$summary.fixed$mean[5], mod6_l_pv$summary.fixed$mean[5]),
+                   mean     = c(mod6_pf$summary.fixed$mean[2], mod6_pv$summary.fixed$mean[2],
+                                mod6_pf$summary.fixed$mean[3], mod6_pv$summary.fixed$mean[3],
+                                mod6_pf$summary.fixed$mean[4], mod6_pv$summary.fixed$mean[4],
+                                mod6_pf$summary.fixed$mean[5], mod6_pv$summary.fixed$mean[5]),
                    
                    
-                   min     = c(mod6_l_pf$summary.fixed$`0.025quant`[2], mod6_l_pv$summary.fixed$`0.025quant`[2],
-                               mod6_l_pf$summary.fixed$`0.025quant`[3], mod6_l_pv$summary.fixed$`0.025quant`[3],
-                               mod6_l_pf$summary.fixed$`0.025quant`[4], mod6_l_pv$summary.fixed$`0.025quant`[4],
-                               mod6_l_pf$summary.fixed$`0.025quant`[5], mod6_l_pv$summary.fixed$`0.025quant`[5]),
+                   min     = c(mod6_pf$summary.fixed$`0.025quant`[2], mod6_pv$summary.fixed$`0.025quant`[2],
+                               mod6_pf$summary.fixed$`0.025quant`[3], mod6_pv$summary.fixed$`0.025quant`[3],
+                               mod6_pf$summary.fixed$`0.025quant`[4], mod6_pv$summary.fixed$`0.025quant`[4],
+                               mod6_pf$summary.fixed$`0.025quant`[5], mod6_pv$summary.fixed$`0.025quant`[5]),
                    
-                   max     = c(mod6_l_pf$summary.fixed$`0.975quant`[2], mod6_l_pv$summary.fixed$`0.975quant`[2],
-                               mod6_l_pf$summary.fixed$`0.975quant`[3], mod6_l_pv$summary.fixed$`0.975quant`[3],
-                               mod6_l_pf$summary.fixed$`0.975quant`[4], mod6_l_pv$summary.fixed$`0.975quant`[4],
-                               mod6_l_pf$summary.fixed$`0.975quant`[5], mod6_l_pv$summary.fixed$`0.975quant`[5]),
+                   max     = c(mod6_pf$summary.fixed$`0.975quant`[2], mod6_pv$summary.fixed$`0.975quant`[2],
+                               mod6_pf$summary.fixed$`0.975quant`[3], mod6_pv$summary.fixed$`0.975quant`[3],
+                               mod6_pf$summary.fixed$`0.975quant`[4], mod6_pv$summary.fixed$`0.975quant`[4],
+                               mod6_pf$summary.fixed$`0.975quant`[5], mod6_pv$summary.fixed$`0.975quant`[5]),
                    
                    Parasite = c("P. falciparum", "P. vivax", 
                                 "P. falciparum", "P. vivax",
@@ -68,7 +52,7 @@ l1 <- expression(italic("P. falciparum"), italic("P. vivax"))
 
 ### Order for plotting
 data$Covariate <- factor(data$Covariate, levels = c("Poverty", 
-                                                    "Urban", "Precipitation",
+                                                    "Level of\nurbanization", "Precipitation",
                                                     "Minimum\ntemperature"))
 
   
@@ -81,62 +65,64 @@ data$Covariate <- factor(data$Covariate, levels = c("Poverty",
   theme(axis.line = element_blank(),
         panel.border = element_rect(colour = "black", fill = NA, size=0.5),
         strip.background = element_blank(),
-        legend.position = c(0.18,0.90),
+        legend.position = c(0.15,0.90),
         legend.key = element_blank(),
         legend.background = element_blank(),
         strip.text = element_text(face = "bold.italic")) +
   xlab("") + ylab("Estimate") +
   labs(color = "") +
-  scale_colour_manual(labels = l1, values = c("palevioletred", "steelblue"))
-
+  scale_colour_manual(labels = l1, values = c("palevioletred", "steelblue")) +
+  scale_y_continuous(limits = c(-1,2),
+                     breaks = c(seq(-1,2,0.5)))
 
 ################################################################################################
-load("models/mod5_pf.R")
+
+## Non linear relationships of temperature and malaria incidence
+load("models/mod5_nl_pf.R")
 load("models/mod5_pv.R")
 
-####### Plot non-linear climate relationships
 ### Create df
 col1 <- "grey40"
 tcol1 <- do.call(rgb,c(as.list(col2rgb(col1)), alpha = 255/4, max = 255))
-  
-tmin_df_pf <- as.data.frame(mod5_pf$summary.random$`inla.group(tmin)`)
-tmin_df_pv <- as.data.frame(mod5_pv$summary.random$`inla.group(tmin)`)
-  
+
+tmin_df_pf <- as.data.frame(mod4_pf$summary.random$`inla.group(tmin)`)
+tmin_df_pv <- as.data.frame(mod4_pv$summary.random$`inla.group(tmin)`)
+
 ### Unscale temperature values to plot by ddd back mean and times by sd
-data <- read.csv("data/data.csv")
+data <- read.csv("data/inla_input/data.csv")
 data_pf <- subset(data, data$parasite == "Falciparum")
 data_pv <- subset(data, data$parasite == "Vivax")
-  
+
 sd_value <- sd(data_pf$tmin_lag3) 
 mean_value <- mean(data_pf$tmin_lag3)
-  
+
 ## Double check range
 #range(data_pf$tmin_lag3)
-  
+
 tmin_df_pf$ID_unscaled <- tmin_df_pf$ID*sd_value + mean_value
 tmin_df_pv$ID_unscaled <- tmin_df_pv$ID*sd_value + mean_value
-  
+
 # Put into df
 data_tmin <- data.frame(Parasite = c(rep("P. falciparum", 25),
-                                       rep("P. vivax", 25)),
-                          x        = c(tmin_df_pf$ID_unscaled,
-                                       tmin_df_pv$ID_unscaled),
-                          
-                          uci        = c(tmin_df_pf$`0.975quant`,
-                                         tmin_df_pv$`0.975quant`),
-                          
-                          lci        = c(tmin_df_pf$`0.025quant`,
-                                         tmin_df_pv$`0.025quant`),
-                          
-                          mean       = c(tmin_df_pf$mean,
-                                         tmin_df_pv$mean))
-  
+                                     rep("P. vivax", 25)),
+                        x        = c(tmin_df_pf$ID_unscaled,
+                                     tmin_df_pv$ID_unscaled),
+                        
+                        uci        = c(tmin_df_pf$`0.975quant`,
+                                       tmin_df_pv$`0.975quant`),
+                        
+                        lci        = c(tmin_df_pf$`0.025quant`,
+                                       tmin_df_pv$`0.025quant`),
+                        
+                        mean       = c(tmin_df_pf$mean,
+                                       tmin_df_pv$mean))
 
-ggplot(data_tmin) + 
-  geom_ribbon(aes(ymin=exp(data_tmin$lci), ymax=exp(data_tmin$uci), x=data_tmin$x, fill = "95% CI"), alpha = 0.2) +
-  geom_hline(yintercept = 1, colour = "grey50", size = 0.3,
+
+  ggplot(data_tmin) + 
+  geom_ribbon(aes(ymin=data_tmin$lci, ymax=data_tmin$uci, x=data_tmin$x, fill = "95% CI"), alpha = 0.2) +
+  geom_hline(yintercept = 0, colour = "grey50", size = 0.3,
              linetype = "dashed") +
-  geom_line(aes(x= x, y=exp(mean), colour = "mean")) +
+  geom_line(aes(x= x, y=mean, colour = "mean")) +
   theme_classic() +
   scale_colour_manual("",values="black") +
   scale_fill_manual("",values=tcol1) +
@@ -151,44 +137,48 @@ ggplot(data_tmin) +
         legend.key.height = unit(0.5, "cm"),
         strip.background = element_blank(),
         strip.text = element_text(face = "italic")) +
-  scale_y_continuous(limits = c(0, 10), breaks = c(seq(0,10, 2)),
-                     labels = c(0,2,4,6,8,10)) +
+  scale_y_continuous(limits = c(-3.5, 3), breaks = c(seq(-3, 3, 1)),
+                    labels = c(seq(-3, 3, 1))) +
   scale_x_continuous(limits = c(10, 24), breaks = c(seq(10,24, 2)),
                      labels = c(seq(10,24, 2))) +
   facet_wrap(~Parasite, ncol = 1)
-  
+
 ################################################################################################
 
-####### Look at random effects of models with and without minimum temperature
+#### Look at seasonality in malaria incidence explained by temperature
 ## Load models
-load("models/mod5_l_pf.R")
-load("models/mod5_l_pv.R")
+# with tmin
+load("models/mod6_pf.R")
+load("models/mod6_pv.R")
 
-load("models/mod6_l_wtmin_pv.R")
-load("models/mod6_l_wtmin_pv.R")
+# without tmin
+load("models/mod6_wtmin_pf.R")
+load("models/mod6_wtmin_pv.R")
 
+
+## Put into df
 t1_df <- data.frame(Model = rep(c("with Tmin",
                                   "without Tmin"), each = 24),
                     Parasite = c(rep("P. falciparum", 12),
                                  rep("P. vivax", 12),
                                  rep("P. falciparum", 12),
                                  rep("P. vivax", 12)),
-                    
+              
                     Month = c(rep(1:12, 4)), 
-                    mean = c(mod5_l_pf$summary.random$t1$mean,
-                             mod5_l_pv$summary.random$t1$mean,
-                             mod6_l_wtmin_pf$summary.random$t1$mean,
-                             mod6_l_wtmin_pv$summary.random$t1$mean),
+                    mean = c(mod6_pf$summary.random$t1$mean,
+                             mod6_pv$summary.random$t1$mean,
+                             mod6_wtmin_pf$summary.random$t1$mean,
+                             mod6_wtmin_pv$summary.random$t1$mean),
                     
-                    lci  = c(mod5_l_pf$summary.random$t1$`0.025quant`,
-                             mod5_l_pv$summary.random$t1$`0.025quant`,
-                             mod6_l_wtmin_pf$summary.random$t1$`0.025quant`,
-                             mod6_l_wtmin_pv$summary.random$t1$`0.025quant`),
+                    lci  = c(mod6_pf$summary.random$t1$`0.025quant`,
+                             mod6_pv$summary.random$t1$`0.025quant`,
+                             mod6_wtmin_pf$summary.random$t1$`0.025quant`,
+                             mod6_wtmin_pv$summary.random$t1$`0.025quant`),
                     
-                    uci  = c(mod5_l_pf$summary.random$t1$`0.975quant`,
-                             mod5_l_pv$summary.random$t1$`0.975quant`,
-                             mod6_l_wtmin_pf$summary.random$t1$`0.975quant`,
-                             mod6_l_wtmin_pv$summary.random$t1$`0.975quant`))
+                    uci  = c(mod6_pf$summary.random$t1$`0.975quant`,
+                             mod6_pv$summary.random$t1$`0.975quant`,
+                             mod6_wtmin_pf$summary.random$t1$`0.975quant`,
+                             mod6_wtmin_pv$summary.random$t1$`0.975quant`))
 
 t1_df$Month <- as.factor(t1_df$Month)
 levels(t1_df$Month)[levels(t1_df$Month) == "1"]      <- "Jan"
@@ -207,7 +197,11 @@ levels(t1_df$Month)[levels(t1_df$Month) == "12"]      <- "Dec"
 label1 <- bquote(paste("Random effects with T"["min"]))
 label2 <- bquote(paste("Random effects without T"["min"]))
 
-ggplot(t1_df, aes(Month, mean)) +
+## Relevel 
+levels(t1_df$Parasite)= c("P. falciparum"=expression(paste(bold("A) "), bolditalic("P. falciparum"))),
+                          "P. vivax"=expression(paste(bold("B) "), bolditalic("P. vivax"))))
+
+  ggplot(t1_df, aes(Month, mean)) +
   geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
   geom_errorbar(aes(ymin=lci, ymax=uci, colour = Model), position = position_dodge(width = 0.7)) +
   geom_point(aes(fill = Model, colour = Model), shape = 21, position = position_dodge(width = 0.7)) +
@@ -218,22 +212,22 @@ ggplot(t1_df, aes(Month, mean)) +
         strip.background = element_blank(),
         legend.position = c(0.87,0.90),
         legend.title = element_blank(),
-        strip.text.x = element_text(face = "bold.italic", hjust = -0.2),
-        strip.text.y = element_text(face = "bold", hjust = -0.2),
+        strip.text = element_text(hjust = 0, size = 11),
         legend.background=element_blank(),
         legend.key=element_blank(),
         legend.text = element_text(size = 7.5)) +
-  facet_wrap(~Parasite, scales = "free", nrow = 1) +
+  facet_wrap(~Parasite, scales = "free", nrow = 1,
+             labeller = label_parsed) +
   scale_fill_manual(values = c("salmon", "grey"),
                     labels = c(label1, label2)) +
   scale_colour_manual(values = c("salmon", "grey"),
-                      labels = c(label1, label2)) 
-  
-################################################################################################
+                      labels = c(label1, label2))
 
-####### Compare model posterior predictions with and without climate information
+  ################################################################################################
+
+  ### Compare model posterior distributions with and without climate information
 # Models with climate information
-load("models/mod5_pf.R")
+load("models/mod5_l_pf.R")
 load("models/mod5_pv.R")
 
 # Models without climate information
@@ -257,15 +251,15 @@ data <- data.frame(Year     = c(rep(data_pf$Year, 2)),
                    
                    Parasite = c(rep("P. falciparum", 4872), rep("P. vivax", 4872)),
                    
-                   Fit      = c(mod5_pf$summary.fitted.values$mean,
+                   Fit      = c(mod5_l_pf$summary.fitted.values$mean,
                                 mod5_pv$summary.fitted.values$mean),
                    
                    Observed = c(data_pf$cases, data_pv$cases),
                    
-                   lci      = c(mod5_pf$summary.fitted.values[,3],
-                                mod8_pv$summary.fitted.values[,3]),
+                   lci      = c(mod5_l_pf$summary.fitted.values[,3],
+                                mod5_pv$summary.fitted.values[,3]),
                    
-                   uci      =  c(mod5_pf$summary.fitted.values[,5],
+                   uci      =  c(mod5_l_pf$summary.fitted.values[,5],
                                  mod5_pv$summary.fitted.values[,5]))
 
 
@@ -305,6 +299,7 @@ climate_plot <-
   theme(axis.text.x  = element_blank(),
         axis.text.y  = element_text(size = 7),
         axis.ticks.x = element_blank(),
+        #legend.text  = element_text(size = 11),
         legend.title = element_blank(),
         legend.key = element_blank(),
         legend.background = element_blank(),
@@ -314,6 +309,7 @@ climate_plot <-
         panel.border = element_rect(colour = "black", fill=NA, size=0.5),
         strip.text.x = element_text(face = "bold.italic"),
         strip.background = element_blank()) 
+
 
 data <- data.frame(Year     = c(rep(data_pf$Year, 2)),
                    
@@ -370,6 +366,7 @@ plot_w_climate <-
   guides(colour = guide_legend(override.aes = list(linetype = c(1,2)))) +
   theme(axis.text.x  = element_text(angle = 90, hjust = 1, size = 7),
         axis.text.y  = element_text(size = 7),
+        #legend.text  = element_text(size = 11),
         legend.title = element_blank(),
         legend.key = element_blank(),
         legend.background = element_blank(),
@@ -379,8 +376,8 @@ plot_w_climate <-
         panel.border = element_rect(colour = "black", fill=NA, size=0.5),
         strip.text = element_blank(),
         strip.background = element_blank()) 
-  
-climate_pred <-
+
+  climate_pred <-
   
   ggarrange(climate_plot,
             plot_w_climate,
@@ -400,11 +397,11 @@ annotate_figure(climate_pred,
 
 ################################################################################################
 
-####### Compare parameter estimates for 1990-2018 model and intervention model 2001-2015
+### Compare parameter estimates for 1990-2018 model and intervention model 2001-2015
 
 ## 1990-2018 models
-load("models/mod6_l_pf.R")
-load("models/mod6_l_pv.R")
+load("models/mod6_pf.R")
+load("models/mod6_pv.R")
 
 ## Intervention models 2001-2015
 load("models/mod_int_pf.R")
@@ -430,10 +427,10 @@ data_int <- data.frame(Model = c(rep("1990-2018 model", 14),
                                       "Space\nspraying", "Space\nspraying",
                                       "ULV\nfumigation", "ULV\nfumigation"),
                        
-                       mean     = c(mod6_l_pf$summary.fixed$mean[4], mod6_l_pv$summary.fixed$mean[4],
-                                    mod6_l_pf$summary.fixed$mean[5], mod6_l_pv$summary.fixed$mean[5],
-                                    mod6_l_pf$summary.fixed$mean[3], mod6_l_pv$summary.fixed$mean[3],
-                                    mod6_l_pf$summary.fixed$mean[2], mod6_l_pv$summary.fixed$mean[2],
+                       mean     = c(mod6_pf$summary.fixed$mean[4], mod6_pv$summary.fixed$mean[4],
+                                    mod6_pf$summary.fixed$mean[5], mod6_pv$summary.fixed$mean[5],
+                                    mod6_pf$summary.fixed$mean[3], mod6_pv$summary.fixed$mean[3],
+                                    mod6_pf$summary.fixed$mean[2], mod6_pv$summary.fixed$mean[2],
                                     NA, NA,
                                     NA, NA,
                                     NA, NA,
@@ -447,10 +444,10 @@ data_int <- data.frame(Model = c(rep("1990-2018 model", 14),
                                     mod_int_pf$summary.fixed$mean[8], mod_int_pv$summary.fixed$mean[8]),
                        
                        
-                       min     = c(mod6_l_pf$summary.fixed$`0.025quant`[4], mod6_l_pv$summary.fixed$`0.025quant`[4],
-                                   mod6_l_pf$summary.fixed$`0.025quant`[5], mod6_l_pv$summary.fixed$`0.025quant`[5],
-                                   mod6_l_pf$summary.fixed$`0.025quant`[3], mod6_l_pv$summary.fixed$`0.025quant`[3],
-                                   mod6_l_pf$summary.fixed$`0.025quant`[2], mod6_l_pv$summary.fixed$`0.025quant`[2],
+                       min     = c(mod6_pf$summary.fixed$`0.025quant`[4], mod6_pv$summary.fixed$`0.025quant`[4],
+                                   mod6_pf$summary.fixed$`0.025quant`[5], mod6_pv$summary.fixed$`0.025quant`[5],
+                                   mod6_pf$summary.fixed$`0.025quant`[3], mod6_pv$summary.fixed$`0.025quant`[3],
+                                   mod6_pf$summary.fixed$`0.025quant`[2], mod6_pv$summary.fixed$`0.025quant`[2],
                                    NA, NA,
                                    NA, NA,
                                    NA, NA,
@@ -463,10 +460,10 @@ data_int <- data.frame(Model = c(rep("1990-2018 model", 14),
                                    mod_int_pf$summary.fixed$`0.025quant`[6], mod_int_pv$summary.fixed$`0.025quant`[6],
                                    mod_int_pf$summary.fixed$`0.025quant`[8], mod_int_pv$summary.fixed$`0.025quant`[8]),
                        
-                       max     = c(mod6_l_pf$summary.fixed$`0.975quant`[4], mod6_l_pv$summary.fixed$`0.975quant`[4],
-                                   mod6_l_pf$summary.fixed$`0.975quant`[5], mod6_l_pv$summary.fixed$`0.975quant`[5],
-                                   mod6_l_pf$summary.fixed$`0.975quant`[3], mod6_l_pv$summary.fixed$`0.975quant`[3],
-                                   mod6_l_pf$summary.fixed$`0.975quant`[2], mod6_l_pv$summary.fixed$`0.975quant`[2],
+                       max     = c(mod6_pf$summary.fixed$`0.975quant`[4], mod6_pv$summary.fixed$`0.975quant`[4],
+                                   mod6_pf$summary.fixed$`0.975quant`[5], mod6_pv$summary.fixed$`0.975quant`[5],
+                                   mod6_pf$summary.fixed$`0.975quant`[3], mod6_pv$summary.fixed$`0.975quant`[3],
+                                   mod6_pf$summary.fixed$`0.975quant`[2], mod6_pv$summary.fixed$`0.975quant`[2],
                                    NA, NA,
                                    NA, NA,
                                    NA, NA,
@@ -508,6 +505,10 @@ data_int$Covariate <- factor(data_int$Covariate, levels = c("Space\nspraying",
 col1 <- "#08174D"
 col2 <- "#339989"
 
+## Relevel 
+levels(data_int$Parasite)= c("P. falciparum"=expression(paste(bold("A) "), bolditalic("P. falciparum"))),
+                            "P. vivax"=expression(paste(bold("B) "), bolditalic("P. vivax"))))
+
 ggplot(data_int, aes(y = data_int$mean, x = data_int$Covariate, colour = data_int$Model)) +
   geom_hline(yintercept = 0, colour = "darkgrey", linetype = "dashed", size = 0.3) +
   geom_linerange(aes(ymin = data_int$min, ymax = data_int$max), size = 0.4, position = position_dodge(width = 0.7)) +
@@ -520,16 +521,16 @@ ggplot(data_int, aes(y = data_int$mean, x = data_int$Covariate, colour = data_in
         legend.position = c(0.87,0.18),
         legend.key = element_blank(),
         legend.background = element_blank(),
-        strip.text = element_text(face = "bold.italic")) +
+        strip.text = element_text(hjust = 0, size = 11)) +
   xlab("") + ylab("Estimate") +
   labs(color = "") +
   scale_colour_manual(values = c(col1, col2)) + 
-  facet_wrap(~Parasite, nrow = 1)
-
+  facet_wrap(~Parasite, nrow = 1, labeller = label_parsed) +
+  scale_y_continuous(limits = c(-1,1.8),
+                     breaks = c(seq(-1,1.8,0.5)))
 
 ################################################################################################
-
-####### Compare the model improvement for each intervention measure
+### Compare the model improvement for each intervention measure
 ## Models with all interventions 
 load("models/mod_int_pf.R")
 load("models/mod_int_nl_pv.R")
@@ -601,8 +602,6 @@ rmse_df <- rmse_df %>% dplyr::mutate(percent_irs = (difference_irs/without_irs)*
                                      percent_fog = (difference_fog/without_fog)*100,
                                      percent_fum = (difference_fum/without_fum)*100)
 
-options(scipen = 9999)
-
 ## Melt to plot
 rmse_df <- rmse_df[c(1,6,10:12)]
 rmse_df <- melt(rmse_df, id.vars = c("id", "Parasite"))
@@ -630,7 +629,7 @@ limit <- max(abs(merge_shp_coef$value)) * c(-1, 1)
 
 my_palette <- c("#5E083E", "#DDDDDD","#2EA805")
 
-  ggplot() + 
+ggplot() + 
   geom_polygon(data = merge_shp_coef, aes(x = long, y = lat, group = group, 
                                           fill = value), color = "black", size = 0.1,
                alpha = 0.6) +
@@ -652,3 +651,81 @@ my_palette <- c("#5E083E", "#DDDDDD","#2EA805")
                        na.value = "grey43",
                        guide = guide_colourbar(ticks = FALSE, barheight = 5,
                                                barwidth = 1))
+
+################################################################################################
+
+### Compare interannual random effects of 1990-2018 model with 2001-2015 model
+
+# 1990-2018 models
+load("models/mod5_l_pf.R")
+load("models/mod5_pv.R")
+
+# 2001-2015 model
+load("models/mod_int_pf.R")
+load("models/mod_int_nl_pv.R")
+
+t2_df <- data.frame(Model = c(rep("Random effects of 1990-2018 model", 58),
+                              
+                              rep("Random effects of 2001-2015 model", 58)),
+                    
+                    Parasite = c(rep(c("P. falciparum", "P. vivax"), each = 29),
+                                 rep(c("P. falciparum", "P. vivax"), each = 29)),
+                    
+                    Year = c(1990:2018, 1990:2018,
+                             1990:2018, 1990:2018),
+                    
+                    mean = c(mod5_l_pf$summary.random$t2$mean,
+                             mod5_pv$summary.random$t2$mean,
+                             rep(NA, 11),
+                             mod_int_pf$summary.random$t2$mean,
+                             rep(NA, 3),
+                             rep(NA, 11),
+                             mod_int_nl_pv$summary.random$t2$mean,
+                             rep(NA, 3)),
+                    
+                    lci  = c(mod5_l_pf$summary.random$t2$`0.025quant`,
+                             mod5_pv$summary.random$t2$`0.025quant`,
+                             rep(NA, 11),
+                             mod_int_pf$summary.random$t2$`0.025quant`,
+                             rep(NA, 3),
+                             rep(NA, 11),
+                             mod_int_nl_pv$summary.random$t2$`0.025quant`,
+                             rep(NA, 3)),
+                    
+                    uci  = c(mod5_pf$summary.random$t2$`0.975quant`,
+                             mod5_l_pv$summary.random$t2$`0.975quant`,
+                             rep(NA, 11),
+                             mod_int_pf$summary.random$t2$`0.975quant`,
+                             rep(NA, 3),
+                             rep(NA, 11),
+                             mod_int_nl_pv$summary.random$t2$`0.975quant`,
+                             rep(NA, 3)))
+
+col1 <- "#339989"
+
+## Relevel 
+levels(t2_df$Parasite)= c("P. falciparum"=expression(paste(bold("A) "), bolditalic("P. falciparum"))),
+                          "P. vivax"=expression(paste(bold("B) "), bolditalic("P. vivax"))))
+
+ggplot(t2_df, aes(Year, mean)) +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
+  geom_errorbar(aes(ymin=lci, ymax=uci, colour = Model), position = position_dodge(width = 0.7)) +
+  geom_point(aes(fill = Model, colour = Model), shape = 21, position = position_dodge(width = 0.7)) +
+  ylab("Relative risk") + 
+  theme_classic() +
+  theme(axis.line = element_blank(),
+        panel.background = element_rect(colour = "black", fill = NA, size=0.5),
+        strip.background = element_blank(),
+        legend.position = c(0.67,0.93),
+        legend.title = element_blank(),
+        strip.text= element_text(hjust = 0, size = 11),
+        axis.text.x = element_text(angle = 90, size = 7),
+        axis.title = element_text(size = 10),
+        legend.background=element_blank(),
+        legend.key=element_blank(),
+        legend.text = element_text(size = 7.5),
+        legend.key.size = unit(0.4, "cm")) +
+  facet_grid(~Parasite, scales = "free", labeller = label_parsed) +
+  scale_x_continuous(breaks = 1990:2018) +
+  scale_fill_manual(values = c("grey", col1)) +
+  scale_colour_manual(values = c("grey", col1)) 
