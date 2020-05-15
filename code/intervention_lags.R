@@ -331,6 +331,12 @@ for (i in c(1:7)) {
 
 data <- rbind(df_irs, df_fogging, df_fumigation)
 
+data <- data %>% mutate(Mean = round(Mean, 2),
+                        LCI      = round(LCI, 2),
+                        UCI      = round(UCI, 2),
+                        DIC      = round(DIC, 2),
+                        WAIC     = round(WAIC, 2))
+
 write.csv(data, "model_comparisons/intervention_lags_pf.csv")
 
 #######################################################################################################################################################
@@ -608,5 +614,11 @@ for (i in c(1:7)) {
 
 
 data <- rbind(df_irs, df_fogging, df_fumigation)
+
+data <- data %>% mutate(Mean = round(Mean, 2),
+                        LCI      = round(LCI, 2),
+                        UCI      = round(UCI, 2),
+                        DIC      = round(DIC, 2),
+                        WAIC     = round(WAIC, 2))
 
 write.csv(data, "model_comparisons/intervention_lags_pv.csv")
