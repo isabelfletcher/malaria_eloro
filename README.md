@@ -1,9 +1,9 @@
-This repository contains all scripts used for the analysis of the impact of climate and intervention measures on malaria incidence in El Oro province, Ecuador.
+This repository contains all scripts used for the spatiotemporal analysis of the impact of climate and intervention measures on malaria incidence in El Oro province, Ecuador.
 
 Results are reported in the following manuscript:
 
 Fletcher, I.K., Stewart-Ibarra, A.M., Sippy, R., Carrasco-Escobar, G., Silva, M., Beltran-Ayala, E. Ordoñez, T, Adrian, J., Sáenz, F.E., Drakeley, C., Jones, K.E. & Lowe, R.
-The relative role of climate variation and control interventions on malaria elimination efforts in El Oro, Ecuador: a modelling study.
+The relative role of climate variation and control interventions on malaria elimination efforts in El Oro, Ecuador: a modelling study. Front. Environ. Sci. (2020)
 
 
 
