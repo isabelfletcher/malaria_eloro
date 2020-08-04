@@ -1,8 +1,8 @@
-########################################################################################################################################
+###########################################################################################################################################################
 
-### Bayesian hierarchical models for modelling the effect of climate variation and interventions on malaria incidence in El Oro
+### Bayesian hierarchical models for modelling the effect of climate variation and interventions on spatiotemporal incidence of malaria in El Oro, Ecuador
 
-########################################################################################################################################
+###########################################################################################################################################################
 
 ## Load libraries
 pacman::p_load("raster", "INLA","dplyr", 
