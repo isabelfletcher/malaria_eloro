@@ -255,8 +255,8 @@ formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +
 mod5_l_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0", 
                   offset = log(e), verbose = TRUE,
                   control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
-                                         config = FALSE, 
-                                         return.marginals = FALSE), 
+                                         config = TRUE, 
+                                         return.marginals = TRUE), 
                   control.predictor = list(link = 1, compute = TRUE), 
                   control.family = list(link = "log"))
 
