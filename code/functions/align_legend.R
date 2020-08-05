@@ -64,3 +64,5 @@ align_legend <- function(p, hjust = 0.5)
   g$grobs[[legend_index]] <- legend
   g
 }
+                               
+save(align_legend, file="functions/align_legend.RData")
