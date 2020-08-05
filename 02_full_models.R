@@ -18,7 +18,7 @@ nb.map <- poly2nb(el_oro)
 nb2INLA("map.graph",nb.map)
 
 ## Read in data
-data <- read.csv("data/inla_input/data.csv")
+data <- read.csv("data.csv")
 
 ## Add intervention period (2001-2015) before/after
 data$int_per <- 0
