@@ -278,3 +278,4 @@ data_nl <- rbind(data_nl, tmin_lags_nl)
 
 write.csv(data_l,  file = "supplementary/table_s2_tmin_lags_l.csv")
 write.csv(data_nl, file = "supplementary/table_s3_tmin_lags_nl.csv")
+
