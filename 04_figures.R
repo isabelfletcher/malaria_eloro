@@ -5,70 +5,47 @@
 #############################################################################################################
 
 ## Load libraries
-pacman::p_load("raster", "INLA","dplyr", 
-               "kableExtra", "reshape2", "ggplot2",
-               "scales", "gridExtra", "RColorBrewer",
-               "ggsn", "ggpubr", "sf", "ggsn", "shades",
-               "cowplot")
-
+pacman::p_load("dplyr", "ggplot2", "raster",
+               "scales", "gridExtra",  "RColorBrewer", 
+               "ggpubr", "cowplot", "stringr")
 
 ################################################################################################
-
 ### Figure 1
 
-ecuador_0 <- getData('GADM', country = "ECU", level = 0)
-ecuador_0 <- st_as_sf(ecuador_0)
+# Plot timeseries of cases
+data <- read.csv("data.csv")
 
-ecuador_1 <- getData('GADM', country = "ECU", level = 1)
-ecuador_1 <- st_as_sf(ecuador_1)
-el_oro <- subset(ecuador_1, ecuador_1$NAME_1 == "El Oro")
+data <- data %>% dplyr::group_by(Year, Month, parasite) %>%
+         dplyr::summarise(cases = sum(cases, na.rm = TRUE)) %>%
+                mutate(Date = str_c(Year, Month, "01", sep = "-")) 
 
-venezuela <- getData('GADM', country = "VEN", level = 0)
-venezuela <- st_as_sf(venezuela)
+total_cases <- data %>% dplyr::group_by(Year, Month) %>%
+                        dplyr::summarise(total = sum(cases, na.rm = TRUE))
 
-peru <- getData('GADM', country = "PER", level = 0)
-peru <- st_as_sf(peru)
-
-brazil <- getData('GADM', country = "BRA", level = 0)
-brazil <- st_as_sf(brazil)
-
-colombia <- getData('GADM', country = "COL", level = 0)
-colombia <- st_as_sf(colombia)
-
-## Read in data
-cases <- read.csv("data/malaria_cases/malaria_cases.csv")
-
-## Total amount of cases
-sum_cases <- as.data.frame(cases %>% 
-                             group_by(Year, Month) %>%
-                             dplyr::summarise(total_cases      = sum(Total_cases, na.rm = TRUE),
-                                              total_falciparum = sum(Falciparum, na.rm = TRUE),
-                                              total_vivax      = sum(Vivax, na.rm = TRUE)))
-
-# Combine into single variable
-sum_cases <- melt(sum_cases, id.vars = c("Year", "Month"), 
-                  measure.vars = c("total_cases", "total_falciparum", "total_vivax"),
-                  value.name = "Cases", variable.name = "Type")
-
-## Date column
-sum_cases$Date <- as.Date(with(sum_cases, paste(Year, Month, rep(01, nrow(sum_cases)), sep = "-")),
-                          "%Y-%m-%d")
-
-## Plot time series
+data$total <- rep(total_cases$total, each = 2)
+data <- melt(data, id.vars = c("Year", "Month", ""))
+  
+# labels
 l1 <- expression(italic("P. falciparum"), italic("P. vivax"), "Total")
 
 col1 <- saturation("grey", 0.5)
 
 cases_plot <- 
   
-  ggplot(sum_cases, aes(x = Date, y = Cases)) + 
-  geom_line(aes(colour = Type, group = Type), 
+  ggplot(data, aes(x = Date)) + 
+  geom_line(aes(y= cases, colour = parasite, group = parasite), 
+            #linetype = Type), 
+            #size = 0.8, 
+            alpha = 0.7) +
+  geom_line(aes(y = total, colour = total), 
             alpha = 0.7) +
   theme_classic() +
   xlab("Time") +
   theme(legend.title = element_blank(),
         axis.text.x  = element_text(angle = 90, hjust = 1),
         legend.position = c(0.1, 0.85),
+        #legend.key.height = unit(1, "line"),
+        # legend.key.width = unit(2, "line"),
         legend.key = element_blank(),
         legend.background = element_blank(),
         axis.line = element_blank(),
@@ -76,6 +53,9 @@ cases_plot <-
   scale_colour_manual(name = "legend", values = c("palevioletred", "steelblue","lightgrey"),
                       breaks = c("total_falciparum", "total_vivax", "total_cases"),
                       labels = l1) +
+  #scale_linetype_manual(name = "legend", values = c("solid", "dashed", "dotted"),
+  #                     breaks = c("total_falciparum", "total_vivax", "total_cases"),
+  #                    labels = l1) +
   scale_x_date(labels = date_format("%Y"),
                expand = c(0,0),
                breaks = date_breaks("years"),
@@ -86,103 +66,7 @@ cases_plot <-
   annotate("text", x = as.Date('2008-01-01'), y = 1050, label = "Period of intensive vector control", size = 3)
 
 
-#########
 
-## Map
-sa <- sf::st_read("data/SA_shp/SouthAmerica.shp")
-
-map <-
-  ggplot() + geom_sf(data=sa, fill = "grey95", size = 0.1,
-                     colour = "black") +
-  ## Add country labels
-  annotate('text', x = -9592560, y = -1008478, 
-           label = "Peru", size = 3.5) +
-  annotate("segment", x = -8400000, xend = -9300000,
-           y = -1000000, yend = -1000000,
-           size = 0.2) +
-  
-  annotate('text', x = -9800000, y = 300000, 
-           label = "Ecuador", size = 3.5) +
-  annotate("segment", x = -8700000, xend = -9500000,
-           y = -110000, yend = 100000,
-           size = 0.2) +
-  
-  annotate('text', x = -9450000, y = 1300000, 
-           label = "Colombia", size = 3.5) +
-  annotate("segment", x = -8250000, xend = -9500000,
-           y = 700000, yend = 1100000,
-           size = 0.2) +
-  
-  annotate('text', x = -7550000, y = 1800000, 
-           label = "Venezuela", size = 3.5) +
-  annotate("segment", x = -7250000, xend = -7650000,
-           y = 900000, yend = 1650000,
-           size = 0.2) +
-  
-  scale_y_continuous(limits = c(-4000000, 1856462)) +
-  geom_sf(data = el_oro, fill = "salmon", size = 0.05, colour = "salmon") +
-  theme_void() +
-  ## Add box around location
-  annotate("rect", xmin = -8200000, xmax = -9300000,
-           ymin = 320000, ymax=-750000, colour = "black",
-           fill = "transparent", size = 0.3) +
-  
-  ## Scalebar and north
-  north(sa, symbol = 3, scale = 0.08,
-        anchor = c(x=-3550000, y=-2700000)) 
-
-map <- 
-  
-map +
-  scalebar(sa, dist_unit = "km",
-           dist = 1000, transform = FALSE,
-           dd2km = FALSE,
-           model = "WGS84",
-           st.dist = 0.0105, 
-           height = 0.02, st.size = 3,
-           border.size = 0.4,
-           anchor = c(x = -3550000, y= -3900000))
-
-
-### Second map
-el_oro <- ggplot() + geom_sf(data=ecuador_0, fill = "grey95", size = 0.1,
-                   colour = "black") +
-  geom_sf(data = el_oro, fill = "salmon", size = 0.05, colour = "black") +
-  geom_sf(data = colombia, fill = "grey95", size = 0.1,
-          colour = "black") +
-  geom_sf(data = peru, fill = "grey95", size = 0.1,
-          colour = "black") +
-  geom_sf(data = brazil, fill = "grey95", size = 0.1,
-          colour = "black") +
-  scale_x_continuous(limits = c(-83.5, -74)) +
-  scale_y_continuous(limits = c(-6, 3)) +
-  theme_void() +
-  theme(panel.border = element_rect(colour = "black", fill=NA, size=0.7))  +
-  annotate('text', x = -82.3, y = -2, 
-           label = "El Oro", size = 3) +
-  annotate("segment", x = -82, xend = -79.8,
-           y = -2.8, yend = -3.4,
-           size = 0.4) 
-
-############################################
-g <- ggplotGrob(el_oro)
-
-map_g <- 
-map + annotation_custom(grob = g, 
-                        xmin = -13000000,
-                        xmax = -5700000,
-                        ymin = -2000000,
-                        ymax = -4200000)
-
-## Arrange with cases
-tiff("figures/figure_1.tif", width = 180, height = 180, res = 360, units = "mm", compression = "lzw")
-ggarrange(map_g, cases_plot,
-          nrow = 2,
-          align = 'v',
-          heights = c(2, 1.5),
-          labels = c("A)", "B)"),
-          hjust = -0.20)
-dev.off()
 
 ################################################################################################
 ### Figure 2A
@@ -228,10 +112,11 @@ estimates_plot <-
   theme(axis.line = element_blank(),
         panel.border = element_rect(colour = "black", fill = NA, size=0.5),
         strip.background = element_blank(),
-        legend.position = c(0.87,0.93),
-        legend.key = element_blank(),
+        legend.position = c(0.86,0.93),
+        legend.key.size = unit(1,"line"),
         legend.background = element_blank(),
-        strip.text = element_text(face = "bold.italic")) +
+        strip.text = element_text(face = "bold.italic"),
+        legend.text = element_text(size = 7)) +
   xlab("") + ylab("Estimate") +
   labs(color = "") +
   scale_colour_manual(labels = l1, values = c("palevioletred", "steelblue")) +
@@ -250,7 +135,7 @@ col1 <- "grey40"
 tcol1 <- do.call(rgb,c(as.list(col2rgb(col1)), alpha = 255/4, max = 255))
 
 ### Unscale temperature values to plot by adding back mean and times by sd
-data <- read.csv("data/inla_input/data.csv")
+data <- read.csv("data.csv")
 # Climate data is repeated for both parasites
 unscale <- data %>% subset(parasite == "Falciparum") %>%
   dplyr::summarise(sd   = sd(tmin_lag3),
@@ -264,7 +149,7 @@ nl_df <- rbind(mod5_nl_pf$summary.random$`inla.group(tmin)` %>%
                  dplyr::select(ID, mean, `0.025quant`, `0.975quant`, parasite) %>%
                  dplyr::rename(lci = `0.025quant`,
                                uci = `0.975quant`),
-               mod5_pv$summary.random$`inla.group(tmin)` %>%
+               mod5_nl_pv$summary.random$`inla.group(tmin)` %>%
                  mutate(parasite = "P. vivax",
                         sd_value       = unscale$sd,
                         mean_value     = unscale$mean) %>%
@@ -293,14 +178,14 @@ nl_plot <-
         legend.key.height = unit(0.5, "cm"),
         strip.background = element_blank(),
         strip.text = element_text(face = "italic")) +
-  scale_y_continuous(limits = c(-3.5, 3), breaks = c(seq(-3, 3, 1)),
-                     labels = c(seq(-3, 3, 1))) +
+  scale_y_continuous(limits = c(-4, 3), breaks = c(seq(-4, 3, 1)),
+                     labels = c(seq(-4, 3, 1))) +
   scale_x_continuous(limits = c(10, 24), breaks = c(seq(10,24, 2)),
                      labels = c(seq(10,24, 2))) +
   facet_wrap(~parasite, ncol = 1)
 
 ## Combine 
-tiff("figures/paper/figure_2.tif", width = 180, height = 90, units = "mm", res = 520, compression = "lzw")
+tiff("figures/figure_2.tif", width = 180, height = 90, units = "mm", res = 520, compression = "lzw")
 
 plot_grid(estimates_plot,
           nl_plot,
@@ -360,7 +245,7 @@ t1_df$month <- factor(t1_df$month, levels = month.abb)
 label1 <- bquote(paste("Random effects with T"["min"]))
 label2 <- bquote(paste("Random effects without T"["min"]))
 
-tiff("figures/paper/figure_3.tif", width = 180, height = 90, units = "mm", res = 520, compression = "lzw")
+tiff("figures/figure_3.tif", width = 180, height = 90, units = "mm", res = 520, compression = "lzw")
 
 ggplot(t1_df, aes(month, mean)) +
   geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
@@ -391,7 +276,7 @@ dev.off()
 ### Figure 4
 
 ### Climate suitability for transmission, based on minimum temperatures
-data <- read.csv("data/inla_input/data.csv")
+data <- read.csv("data.csv")
 
 suitability <- rbind(data %>% subset(tmin >= 18 & parasite == "Falciparum") %>%
                        group_by(Year) %>% tally() %>%
@@ -405,7 +290,7 @@ suitability <- rbind(data %>% subset(tmin >= 18 & parasite == "Falciparum") %>%
                               # divide for number of cantons
                               n = n/14))
 
-tiff("figures/paper/figure_4.tif", width = 180, height = 90, units = "mm", res = 520, compression = "lzw")
+tiff("figures/figure_4.tif", width = 180, height = 90, units = "mm", res = 520, compression = "lzw")
 
 ggplot(suitability, aes(x = Year, y = n, group = parasite,
                         colour = "parasite")) +
@@ -434,18 +319,18 @@ dev.off()
 ### Compare model posterior distributions with and without climate information
 # Models with climate information (nb: best fitting model includes linear climate info for P. falciparum and non-linear for P. vivax)
 load("models/mod5_l_pf.R")
-load("models/mod5_pv.R")
+load("models/mod5_nl_pv.R")
 
 # Models without climate information
 load("models/mod3_pf.R") 
 load("models/mod3_pv.R") 
 
 ## Read in data
-data <- read.csv("data/inla_input/data.csv")
+data <- read.csv("data.csv")
 
-data <- data %>% mutate(fit = c(mod5_l_pf$summary.fitted.values$mean, mod5_pv$summary.fitted.values$mean),
-                        lci = c(mod5_l_pf$summary.fitted.values[,3], mod5_pv$summary.fitted.values[,3]),
-                        uci = c(mod5_l_pf$summary.fitted.values[,5], mod5_pv$summary.fitted.values[,5])) %>%
+data <- data %>% mutate(fit = c(mod5_l_pf$summary.fitted.values$mean, mod5_nl_pv$summary.fitted.values$mean),
+                        lci = c(mod5_l_pf$summary.fitted.values[,3], mod5_nl_pv$summary.fitted.values[,3]),
+                        uci = c(mod5_l_pf$summary.fitted.values[,5], mod5_nl_pv$summary.fitted.values[,5])) %>%
   # Summarise over space
   dplyr::group_by(Year, Month, parasite) %>%
   dplyr::summarise(fit = mean(fit, na.rm = TRUE),
@@ -503,7 +388,7 @@ climate_plot <-
         strip.background = element_blank()) 
 
 ### Model without climate information
-data <- read.csv("data/inla_input/data.csv")
+data <- read.csv("data.csv")
 
 data$Fit <- c(mod3_pf$summary.fitted.values$mean, mod3_pv$summary.fitted.values$mean)
 data$lci <- c(mod3_pf$summary.fitted.values[,3], mod3_pv$summary.fitted.values[,3])
@@ -561,7 +446,7 @@ plot_w_climate <-
         strip.text = element_blank(),
         strip.background = element_blank()) 
 
-tiff("figures/paper/figure_5_API.tif", height = 130, width = 180, res = 460, units = "mm", compression = "lzw")
+tiff("figures/figure_5.tif", height = 130, width = 180, res = 460, units = "mm", compression = "lzw")
 
 climate_pred <-
   
@@ -652,7 +537,7 @@ estimates$parasite <- as.factor(estimates$parasite)
 levels(estimates$parasite)= c("P. falciparum"=expression(paste(bold("A) "), bolditalic("P. falciparum"))),
                               "P. vivax"=expression(paste(bold("B) "), bolditalic("P. vivax"))))
 
-tiff("figures/paper/figure_6.tif", width = 180, height = 90, units = "mm", res = 520, compression = "lzw")
+tiff("figures/figure_6.tif", width = 180, height = 90, units = "mm", res = 520, compression = "lzw")
 
 ggplot(estimates, aes(y = estimates$mean, x = estimates$variable, colour = estimates$model)) +
   geom_hline(yintercept = 0, colour = "darkgrey", linetype = "dashed", size = 0.3) +
@@ -693,7 +578,7 @@ load("models/mod_int_w_fum_pf.R")
 load("models/mod_int_w_fum_pv.R")
 
 ## Read in data
-data <- read.csv("data/inla_input/data.csv", fileEncoding = "latin1")
+data <- read.csv("data.csv", fileEncoding = "latin1")
 ## Subset data to intervention period
 data <- subset(data, data$Year < 2016 & data$Year > 2000)
 
@@ -806,7 +691,7 @@ p <- ggplot() +
                        guide = guide_colourbar(ticks = FALSE, barheight = 5,
                                                barwidth = 1))
 
-tiff("figures/paper/figure_7.tif", width = 180, height = 80, units = "mm", res = 520, compression = "lzw")
+tiff("figures/figure_7.tif", width = 180, height = 80, units = "mm", res = 520, compression = "lzw")
 
 ggdraw(align_legend(p))
 
@@ -819,7 +704,7 @@ dev.off()
 ### Compare interannual random effects of 1990-2018 model with 2001-2015 model
 # 1990-2018 models (nb: best fitting model includes linear climate info for P. falciparum and non-linear for P. vivax)
 load("models/mod5_l_pf.R")
-load("models/mod5_pv.R")
+load("models/mod5_nl_pv.R")
 
 # 2001-2015 model
 load("models/mod_int_pf.R")
@@ -832,7 +717,7 @@ t2_df <- rbind(rbind(mod5_l_pf$summary.random$t2 %>%
                        dplyr::rename(year = ID,
                                      lci = `0.025quant`,
                                      uci = `0.975quant`),
-                     mod5_pv$summary.random$t2 %>%
+                     mod5_nl_pv$summary.random$t2 %>%
                        mutate(parasite = "P. vivax",
                               model    = "Random effects of 1990-2018 model") %>%
                        dplyr::select(ID, mean, `0.025quant`, `0.975quant`, parasite, model) %>%
@@ -861,7 +746,7 @@ t2_df$parasite <- as.factor(t2_df$parasite)
 levels(t2_df$parasite)= c("P. falciparum"=expression(paste(bold("A) "), bolditalic("P. falciparum"))),
                           "P. vivax"=expression(paste(bold("B) "), bolditalic("P. vivax"))))
 
-tiff("figures/paper/figure_8.tif", width = 180, height = 90, res = 520, units = "mm", compression = "lzw")
+tiff("figures/figure_8.tif", width = 180, height = 90, res = 520, units = "mm", compression = "lzw")
 
 ggplot(t2_df, aes(year, mean)) +
   geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
@@ -886,3 +771,4 @@ ggplot(t2_df, aes(year, mean)) +
   scale_colour_manual(values = c("grey", col1)) 
 
 dev.off()
+
