@@ -384,3 +384,4 @@ mod_int_w_fog_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbino
                          control.family = list(link = "log"))
 
 save(mod_int_w_fog_pv, file = "models/mod_int_w_fog_pv.R")
+
