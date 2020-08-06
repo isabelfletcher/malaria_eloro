@@ -1,10 +1,10 @@
 ########################################################################################################################################
 
-### Model comparisons
+### Table 1
 
 ########################################################################################################################################
 
-## Here we create a table of model DIC and WAIC values to select the best fitting model 
+## Here we create a table of model DIC and WAIC values, and cross-validated log score
 
 library(kableExtra)
 
