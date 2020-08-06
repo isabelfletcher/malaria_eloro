@@ -592,3 +592,4 @@ for (i in c(1:4)) {
 data <- rbind(df_irs, df_fogging, df_fumigation)
 
 write.csv(data, "supplementary/table_S1_pv.csv")
+
