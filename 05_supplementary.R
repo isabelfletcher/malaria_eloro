@@ -46,7 +46,7 @@ dev.off()
 # (nb: best fitting model includes linear climate info for P. falciparum and non-linear for P. vivax)
 ### 1990-2018 models
 load("models/mod5_l_pf.R")
-load("models/mod5_pv.R")
+load("models/mod5_nl_pv.R")
 
 ### 2001-2015 models
 load("models/mod_int_pf.R")
@@ -54,9 +54,9 @@ load("models/mod_int_nl_pv.R")
 
 ## Full model
 data <- read.csv("data.csv")
-data <- data %>% mutate(Fit = c(mod5_l_pf$summary.fitted.values$mean, mod5_pv$summary.fitted.values$mean),
-                        lci = c(mod5_l_pf$summary.fitted.values[,3], mod5_pv$summary.fitted.values[,3]),
-                        uci = c(mod5_l_pf$summary.fitted.values[,5], mod5_pv$summary.fitted.values[,5])) %>%
+data <- data %>% mutate(Fit = c(mod5_l_pf$summary.fitted.values$mean, mod5_nl_pv$summary.fitted.values$mean),
+                        lci = c(mod5_l_pf$summary.fitted.values[,3], mod5_nl_pv$summary.fitted.values[,3]),
+                        uci = c(mod5_l_pf$summary.fitted.values[,5], mod5_nl_pv$summary.fitted.values[,5])) %>%
   # Summarise over space
   dplyr::group_by(Year, Month, parasite) %>%
   dplyr::summarise(Fit = mean(Fit, na.rm = TRUE),
@@ -434,18 +434,18 @@ dev.off()
 ### Figure S6
 # (nb: best fitting model includes linear climate info for P. falciparum and non-linear for P. vivax)
 load("models/mod5_l_pf.R") 
-load("models/mod5_pv.R")
+load("models/mod5_nl_pv.R")
 
 ## Plot parameter estimates
 int0_df_pf <- as.data.frame(mod5_l_pf$marginals.fixed$urban)
 int1_df_pf <- as.data.frame(mod5_l_pf$marginals.fixed$urban + abs(mod5_l_pf$marginals.fixed$`urban:int_per1`))
 
-int0_df_pv <- as.data.frame(mod5_pv$marginals.fixed$urban)
-int1_df_pv <- as.data.frame(mod5_pv$marginals.fixed$urban + abs(mod5_pv$summary.fixed$mean[5]))
+int0_df_pv <- as.data.frame(mod5_nl_pv$marginals.fixed$urban)
+int1_df_pv <- as.data.frame(mod5_nl_pv$marginals.fixed$urban + abs(mod5_nl_pv$summary.fixed$mean[5]))
 
 ## Remove from y
 int1_df_pf$y <-  int1_df_pf$y - abs(as.data.frame(mod5_pf$marginals.fixed$`urban:int_per1`)$y)
-int1_df_pv$y <-  int1_df_pv$y - abs(mod5_pv$summary.fixed$mean[5])
+int1_df_pv$y <-  int1_df_pv$y - abs(mod5_nl_pv$summary.fixed$mean[5])
 
 ## Combine into single df to plot
 falciparum_df <- data.frame(int = c(rep("1990-2000", 75),
@@ -554,7 +554,7 @@ dev.off()
 ### Figure S8
 ## Climate models
 load("models/mod5_l_pf.R")
-load("models/mod5_pv.R")
+load("models/mod5_nl_pv.R")
 
 ## Models without climate
 load("models/mod6_wtmin_pf.R")
@@ -574,10 +574,10 @@ rmse_df <-
                           id        = subset(data, data$parasite == "Falciparum")$Canton) %>%
                    tibble::remove_rownames() %>% 
                    dplyr::rename(fit = `0.5quant`),
-        mod5_pv$summary.fitted.values %>%
+        mod5_nl_pv$summary.fitted.values %>%
                    dplyr::select(`0.5quant`) %>%
                    mutate(observed  = c(subset(data, data$parasite == "Vivax")$cases),
-                          climate   = c(mod5_pv$summary.fitted.values$`0.5quant`),
+                          climate   = c(mod5_nl_pv$summary.fitted.values$`0.5quant`),
                           parasite  = "P. vivax",
                           model     = "with_climate",
                           id        = subset(data, data$parasite == "Vivax")$Canton) %>%
@@ -595,7 +595,7 @@ rmse_df <-
         mod6_wtmin_pv$summary.fitted.values %>%
           dplyr::select(`0.5quant`) %>%
           mutate(observed  = c(subset(data, data$parasite == "Vivax")$cases),
-                 climate   = c(mod5_pv$summary.fitted.values$`0.5quant`),
+                 climate   = c(mod5_nl_pv$summary.fitted.values$`0.5quant`),
                  parasite  = "P. vivax",
                  model     = "Minimum temperature",
                  id        = subset(data, data$parasite == "Vivax")$Canton) %>%
@@ -613,7 +613,7 @@ rmse_df <-
         mod6_wprcp_pv$summary.fitted.values %>%
           dplyr::select(`0.5quant`) %>%
           mutate(observed  = c(subset(data, data$parasite == "Vivax")$cases),
-                 climate   = c(mod5_pv$summary.fitted.values$`0.5quant`),
+                 climate   = c(mod5_nl_pv$summary.fitted.values$`0.5quant`),
                  parasite  = "P. vivax",
                  model     = "Precipitation",
                  id        = subset(data, data$parasite == "Vivax")$Canton) %>%
@@ -673,7 +673,7 @@ dev.off()
 ### Figure S9
 # Models with tmin (nb: best fitting model includes linear climate info for P. falciparum and non-linear for P. vivax)
 load("models/mod5_l_pf.R")
-load("models/mod5_pv.R")
+load("models/mod5_nl_pv.R")
 
 ## Models without tmin
 load("models/mod6_wtmin_pf.R")
@@ -686,7 +686,7 @@ t2_df <- rbind(rbind(mod5_l_pf$summary.random$t2 %>%
                        dplyr::rename(year = ID,
                                      lci = `0.025quant`,
                                      uci = `0.975quant`),
-                     mod5_pv$summary.random$t2 %>%
+                     mod5_nl_pv$summary.random$t2 %>%
                        mutate(parasite = "P. vivax",
                               model    = "Random effects with Tmin") %>%
                        dplyr::select(ID, mean, `0.025quant`, `0.975quant`, parasite, model) %>%
@@ -815,6 +815,51 @@ ggarrange(plot_a,
 dev.off()
 
 ##############################################################################################
+### Table S1
+data <- rbind(read.csv("supplementary/table_S1_pf.csv"),
+              read.csv("supplementary/table_S1_pv.csv")) %>% 
+         mutate(Parasite = rep(c("P. falciparum", "P. vivax"), each = 12))
+
+data$Intervention <- factor(data$Intervention, levels = c("IRS", "Fumigation", "Fogging"),
+                            labels = c("Indoor residual spraying", "ULV fumigation", "Space spraying"))
+data <- data[order(data$Intervention, data$Parasite, data$Lag),]
+data <- data %>% mutate(Mean = round(Mean, 2),
+                        LCI  = round(LCI, 2),
+                        UCI  = round(UCI, 2),
+                        DIC  = round(DIC, 2),
+                        WAIC = round(WAIC, 2))
+
+
+write.csv(data, "supplementary/table_S1.csv")
+
+##############################################################################################
+### Table S2
+data <- rbind(read.csv("supplementary/table_s2_tmin_lags_l.csv"),
+              read.csv("supplementary/table_s2_tmax_lags_l.csv"),
+              read.csv("supplementary/table_s2_prcp_lags_l.csv")) %>% 
+  mutate(Variable = rep(c("Minimum temperature", "Maximum temperature",
+                          "Precipitation"), each = 8)) %>%
+  mutate(Estimate = round(Estimate, 2),
+         LCI  = round(LCI, 2),
+         UCI  = round(UCI, 2),
+         DIC  = round(DIC, 2),
+         WAIC = round(WAIC, 2))
+
+write.csv(data, "supplementary/table_S2.csv")
+
+##############################################################################################
+### Table S3
+data <- rbind(read.csv("supplementary/table_s3_tmin_lags_nl.csv"),
+              read.csv("supplementary/table_s3_tmax_lags_nl.csv"),
+              read.csv("supplementary/table_s3_prcp_lags_nl.csv")) %>% 
+  mutate(Variable = rep(c("Minimum temperature", "Maximum temperature",
+                          "Precipitation"), each = 8)) %>%
+  mutate(DIC  = round(DIC, 2),
+         WAIC = round(WAIC, 2))
+
+write.csv(data, "supplementary/table_S3.csv")
+
+##############################################################################################
 ### Table S4 
 # 1990-2018 models
 load("models/mod6_pf.R")
@@ -869,6 +914,13 @@ estimates_df <- rbind(rbind(mod6_pf$summary.fixed %>%
                                          UCI = `0.975quant`,
                                          Estimate = mean)))
 
+estimates_df <- estimates_df %>% mutate(Estimate = round(Estimate, 2),
+                                        LCI      = round(LCI, 2),
+                                        UCI      = round(UCI, 2))
+
+estimates_df$Variable <- factor(estimates_df$Variable, levels = c("Minimum temperature", "Precipitation", "Level of urbanization", "Poverty"))
+estimates_df <- estimates_df[order(estimates_df$Variable, estimates_df$Parasite, estimates_df$Model),]
+
 write.csv(estimates_df, file = "supplementary/table_S4.csv")
 
 ##############################################################################################
@@ -897,7 +949,12 @@ estimates_df <- rbind(mod_int_pf$summary.fixed %>%
                                    LCI      = `0.025quant`,
                                    UCI      = `0.975quant`))
 
+estimates_df <- estimates_df %>% mutate(Estimate = round(Estimate, 2),
+                                        LCI      = round(LCI, 2),
+                                        UCI      = round(UCI, 2))
 
-estimates_df %>% mutate(Variable = factor(Variable, labels = c("ULV fumigation", "Space spraying", "Indoor residual spraying")))
+estimates_df$Variable <- factor(estimates_df$Variable, levels = c("Indoor residual spraying", "ULV fumigation", "Space spraying"))
+estimates_df <- estimates_df[order(estimates_df$Variable, estimates_df$Parasite),]
+
 
 write.csv(estimates_df, file = "supplementary/table_S5.csv")
