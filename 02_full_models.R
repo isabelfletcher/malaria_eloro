@@ -200,16 +200,6 @@ mod4_l_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0",
 
 save(mod4_l_pf, file = "models/mod4_l_pf.R")
 
-### Compare whether best model is linear or non-linear temperature
-if (mod4_pf$dic$dic < mod4_l_pf$dic$dic) {
-  
-  print("Non-linear temperature is best")
-  
-} else {
-  
-  print("Linear temperature is best")
-  
-}
 
 ########################################################################################
 
@@ -284,18 +274,6 @@ mod5_nl_pf <- inla(formula, data = df_inla_pf, family = "zeroinflatednbinomial0"
                 control.family = list(link = "log"))
 
 save(mod5_nl_pf, file = "models/mod5_nl_pf.R")
-
-### Compare whether best model is linear or non-linear precipitation
-if (mod5_pf$dic$dic < mod5_l_pf$dic$dic) {
-  
-  print("Non-linear precipitation is best")
-  
-} else {
-  
-  print("Linear precipitation is best")
-  
-}
-
 
 ### Model without interaction, to plot parameter estimates
 formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +      
@@ -549,17 +527,6 @@ mod4_l_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0",
 
 save(mod4_l_pv, file = "models/mod4_l_pv.R")
 
-### Compare whether best model is linear or non-linear temperature
-if (mod4_pv$dic$dic < mod4_l_pv$dic$dic) {
-  
-  print("Non-linear temperature is best")
-  
-} else {
-  
-  print("Linear temperature is best")
-  
-}
-
 
 ########################################################################################
 
@@ -576,10 +543,10 @@ formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +
                    ## Add interaction
                    int_per + 
                    urban*int_per +
-                   f(inla.group(tmin), model = "rw1") + ## Based on previous model non-linear tmin is best
+                   f(inla.group(tmin), model = "rw1") + 
                    f(inla.group(prcp), model = "rw1") 
 
-mod5_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
+mod5_nl_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
                 offset = log(e), verbose = TRUE,
                 control.compute = list(dic = TRUE, waic = TRUE, cpo = TRUE, 
                                        config = TRUE, 
@@ -587,7 +554,7 @@ mod5_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0",
                 control.predictor = list(link = 1, compute = TRUE), 
                 control.family = list(link = "log"))
 
-save(mod5_pv, file = "models/mod5_pv.R")
+save(mod5_nl_pv, file = "models/mod5_nl_pv.R")
 
 ## Test linear
 formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +      
@@ -599,7 +566,7 @@ formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +
                    ## Add interaction 
                    int_per + 
                    urban*int_per +
-                   f(inla.group(tmin), model = "rw1") + ## Based on previous model non-linear tmin is best
+                   f(inla.group(tmin), model = "rw1") + 
                    prcp
 
 mod5_l_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0", 
@@ -634,17 +601,6 @@ mod5_ll_pv <- inla(formula, data = df_inla_pv, family = "zeroinflatednbinomial0"
                   control.family = list(link = "log"))
 
 save(mod5_ll_pv, file = "models/mod5_ll_pv.R")
-
-### Compare whether best model is linear or non-linear precipitation
-if (mod5_pv$dic$dic < mod5_l_pv$dic$dic) {
-  
-  print("Non-linear precipitation is best")
-  
-} else {
-  
-  print("Linear precipitation is best")
-  
-}
 
 ### With model without interaction, to plot parameter estimates
 formula <- y ~ 1 + f(s1, model = "besag", graph = "map.graph") +      
