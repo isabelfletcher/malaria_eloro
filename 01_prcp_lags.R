@@ -277,3 +277,4 @@ data_nl <- rbind(data_nl, prcp_lags_nl)
 
 write.csv(data_l,  file = "supplementary/table_s2_prcp_lags_l.csv")
 write.csv(data_nl, file = "supplementary/table_s3_prcp_lags_nl.csv")
+
