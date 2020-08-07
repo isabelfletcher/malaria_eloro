@@ -1,4 +1,4 @@
-This repository contains all scripts used for the spatiotemporal analysis of the impact of climate and intervention measures on malaria incidence in El Oro province, Ecuador.
+This repository contains scripts used for the spatiotemporal analysis of the impact of climate and intervention measures on malaria incidence in El Oro province, Ecuador.
 
 Results are reported in the following manuscript:
 
