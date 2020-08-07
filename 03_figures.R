@@ -7,66 +7,151 @@
 ## Load libraries
 pacman::p_load("dplyr", "ggplot2", "raster",
                "scales", "gridExtra",  "RColorBrewer", 
-               "ggpubr", "cowplot", "stringr")
+               "ggpubr", "cowplot", "stringr",
+               "ggsn")
 
 ################################################################################################
 ### Figure 1
-
-# Plot timeseries of cases
+# Timeseries of cases
 data <- read.csv("data.csv")
 
 data <- data %>% dplyr::group_by(Year, Month, parasite) %>%
-         dplyr::summarise(cases = sum(cases, na.rm = TRUE)) %>%
-                mutate(Date = str_c(Year, Month, "01", sep = "-")) 
+  dplyr::summarise(cases = sum(cases, na.rm = TRUE)) %>%
+  mutate(Date = str_c(Year, Month, "01", sep = "-")) 
 
 total_cases <- data %>% dplyr::group_by(Year, Month) %>%
-                        dplyr::summarise(total = sum(cases, na.rm = TRUE))
+  dplyr::summarise(total = sum(cases, na.rm = TRUE))
 
 data$total <- rep(total_cases$total, each = 2)
 data <- melt(data, id.vars = c("Year", "Month", ""))
-  
+
 # labels
 l1 <- expression(italic("P. falciparum"), italic("P. vivax"), "Total")
 
 col1 <- saturation("grey", 0.5)
 
-cases_plot <- 
-  
-  ggplot(data, aes(x = Date)) + 
-  geom_line(aes(y= cases, colour = parasite, group = parasite), 
-            #linetype = Type), 
-            #size = 0.8, 
-            alpha = 0.7) +
-  geom_line(aes(y = total, colour = total), 
-            alpha = 0.7) +
+plot_b <- 
+  ggplot(data) + 
+  geom_line(aes(as.Date(Date), total, group = 1, colour = "Total"), alpha = 0.7) +
+  geom_line(aes(as.Date(Date), cases, group = parasite, colour = parasite), alpha = 0.7) +
   theme_classic() +
-  xlab("Time") +
+  xlab("Time") + ylab("Cases") +
   theme(legend.title = element_blank(),
         axis.text.x  = element_text(angle = 90, hjust = 1),
         legend.position = c(0.1, 0.85),
-        #legend.key.height = unit(1, "line"),
-        # legend.key.width = unit(2, "line"),
         legend.key = element_blank(),
         legend.background = element_blank(),
         axis.line = element_blank(),
         panel.border = element_rect(colour = "black", fill=NA, size=0.5)) +
-  scale_colour_manual(name = "legend", values = c("palevioletred", "steelblue","lightgrey"),
-                      breaks = c("total_falciparum", "total_vivax", "total_cases"),
+  scale_colour_manual(name = "", values = c("palevioletred", "steelblue","lightgrey"),
+                      breaks = c("Falciparum", "Vivax", "Total"),
                       labels = l1) +
-  #scale_linetype_manual(name = "legend", values = c("solid", "dashed", "dotted"),
-  #                     breaks = c("total_falciparum", "total_vivax", "total_cases"),
-  #                    labels = l1) +
   scale_x_date(labels = date_format("%Y"),
                expand = c(0,0),
                breaks = date_breaks("years"),
                date_minor_breaks = "1 month") +
-  guides(colour = guide_legend(override.aes = list(linetype = 1))) +
-  guides(col = guide_legend(ncol = 1)) +
   annotate("segment", x = as.Date('2001-01-01'), xend = as.Date('2015-01-01'), y = 950, yend = 950, colour = "black", arrow=arrow(ends = "both")) +
   annotate("text", x = as.Date('2008-01-01'), y = 1050, label = "Period of intensive vector control", size = 3)
 
+## Study location
+sa <- sf::st_read("SA_shp/SouthAmerica.shp")
+
+ecuador_0 <- getData('GADM', country = "ECU", level = 0) %>%
+  st_as_sf()
+
+el_oro <- getData('GADM', country = "ECU", level = 1) %>%
+  st_as_sf() %>% subset(NAME_1 == "El Oro")
+
+venezuela <- getData('GADM', country = "VEN", level = 0) %>%
+  st_as_sf()
+
+peru <- getData('GADM', country = "PER", level = 0) %>% 
+  st_as_sf()
+
+colombia <- getData('GADM', country = "COL", level = 0) %>%
+  st_as_sf()
+
+sa_map <-
+  ggplot() + geom_sf(data=sa, fill = "grey95", size = 0.1,
+                     colour = "black") +
+  ## Add country labels
+  annotate('text', x = -9592560, y = -1008478, 
+           label = "Peru", size = 3.5) +
+  annotate("segment", x = -8400000, xend = -9300000,
+           y = -1000000, yend = -1000000,
+           size = 0.2) +
+  annotate('text', x = -9800000, y = 300000, 
+           label = "Ecuador", size = 3.5) +
+  annotate("segment", x = -8700000, xend = -9500000,
+           y = -110000, yend = 100000,
+           size = 0.2) +
+  annotate('text', x = -9450000, y = 1300000, 
+           label = "Colombia", size = 3.5) +
+  annotate("segment", x = -8250000, xend = -9500000,
+           y = 700000, yend = 1100000,
+           size = 0.2) +
+  annotate('text', x = -7550000, y = 1800000, 
+           label = "Venezuela", size = 3.5) +
+  annotate("segment", x = -7250000, xend = -7650000,
+           y = 900000, yend = 1650000,
+           size = 0.2) +
+  scale_y_continuous(limits = c(-4000000, 1856462)) +
+  geom_sf(data = el_oro, fill = "salmon", size = 0.05, colour = "salmon") +
+  theme_void() +
+  ## Add box around location
+  annotate("rect", xmin = -8200000, xmax = -9300000,
+           ymin = 320000, ymax=-750000, colour = "black",
+           fill = "transparent", size = 0.3) +
+  ## Scalebar and north
+  north(sa, symbol = 3, scale = 0.08,
+        anchor = c(x=-3550000, y=-2700000)) +
+  scalebar(sa, dist_unit = "km",
+           dist = 1000, transform = FALSE,
+           dd2km = FALSE,
+           model = "WGS84",
+           st.dist = 0.0105, 
+           height = 0.02, st.size = 3,
+           border.size = 0.4,
+           anchor = c(x = -3550000, y= -3900000))
+
+el_oro_map <- ggplot() + geom_sf(data=ecuador_0, fill = "grey95", size = 0.1,
+                                 colour = "black") +
+  geom_sf(data = el_oro, fill = "salmon", size = 0.05, colour = "black") +
+  geom_sf(data = colombia, fill = "grey95", size = 0.1,
+          colour = "black") +
+  geom_sf(data = peru, fill = "grey95", size = 0.1,
+          colour = "black") +
+  scale_x_continuous(limits = c(-83.5, -74)) +
+  scale_y_continuous(limits = c(-6, 3)) +
+  theme_void() +
+  theme(panel.border = element_rect(colour = "black", fill=NA, size=0.7))  +
+  annotate('text', x = -82.3, y = -2, 
+           label = "El Oro", size = 3) +
+  annotate("segment", x = -82, xend = -79.8,
+           y = -2.8, yend = -3.4,
+           size = 0.4) 
+
+# Combine and position
+g <- ggplotGrob(el_oro_map)
+
+map <- 
+  sa_map + annotation_custom(grob = g, 
+                             xmin = -13000000,
+                             xmax = -5700000,
+                             ymin = -2000000,
+                             ymax = -4200000)
 
 
+tiff("figures/figure_1.tif", width = 180, height = 180, res = 360, units = "mm", compression = "lzw")
+
+ggarrange(map, plot_b,
+          nrow = 2,
+          align = 'v',
+          heights = c(2, 1.5),
+          labels = c("A)", "B)"),
+          hjust = -0.20)
+
+dev.off()
 
 ################################################################################################
 ### Figure 2A
@@ -185,7 +270,7 @@ nl_plot <-
   facet_wrap(~parasite, ncol = 1)
 
 ## Combine 
-tiff("figures/figure_2.tif", width = 180, height = 90, units = "mm", res = 520, compression = "lzw")
+tiff("figures/figure_2.tif", width = 180, height = 90, units = "mm", res = 320, compression = "lzw")
 
 plot_grid(estimates_plot,
           nl_plot,
@@ -537,7 +622,7 @@ estimates$parasite <- as.factor(estimates$parasite)
 levels(estimates$parasite)= c("P. falciparum"=expression(paste(bold("A) "), bolditalic("P. falciparum"))),
                               "P. vivax"=expression(paste(bold("B) "), bolditalic("P. vivax"))))
 
-tiff("figures/figure_6.tif", width = 180, height = 90, units = "mm", res = 520, compression = "lzw")
+tiff("figures/figure_6.tif", width = 180, height = 90, units = "mm", res = 320, compression = "lzw")
 
 ggplot(estimates, aes(y = estimates$mean, x = estimates$variable, colour = estimates$model)) +
   geom_hline(yintercept = 0, colour = "darkgrey", linetype = "dashed", size = 0.3) +
@@ -771,4 +856,3 @@ ggplot(t2_df, aes(year, mean)) +
   scale_colour_manual(values = c("grey", col1)) 
 
 dev.off()
-
